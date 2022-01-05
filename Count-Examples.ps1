@@ -109,7 +109,7 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
                 else
                 # if ($ExampleCodeBlock.Count -eq 1)
                 {
-                    $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*((@\(.+\))|(\[.+\]\$)|(@{.+})|(('|`")[^\n\r'`"]*('|`") *[.-])|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
+                    $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
                     # $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*(([@\$]*\(.+\))|(\[.+\]\$)|(@{[\S\s]+})|(('|`")[^\n\r'`"]*('|`")))))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
                     if ($ExampleCodeLines.Count -eq 0)
                     {
@@ -126,8 +126,8 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
                             $LastCharacter = $ExampleCodeBlock[0].Value.Substring($ExampleCodeBlock[0].Value.IndexOf($ExampleCodeLines[$i]) + $ExampleCodeLines[$i].Length - 1, 1)
                             if ($LastCharacter -ne "``" -and $LastCharacter -ne "`r" -and $LastCharacter -ne "`n")
                             {
-                                # If a codeline contains " :", it's not a codeline but an output line. If a codeline is like (("": "")), it's not a codeline but a json property.
-                                if (!$ExampleCodeLines[$i].Value.Contains(" :") -and !($ExampleCodeLines[$i].Value.Trim() -match '^{? *".+" *: *".+" *}?$'))
+                                # If a codeline contains " :", it's not a codeline but an "| Format-List" output line.
+                                if (!$ExampleCodeLines[$i].Value.Contains(" :"))
                                 {
                                     $ExamplesCodes += $ExampleCodeLines[$i]
                                 }
