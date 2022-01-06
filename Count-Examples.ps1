@@ -54,6 +54,9 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
             Write-Host "Searching in file $($_.FullName) ..."
             $Cmdlet = $_.BaseName
             $FileContent = cat $_.FullName -Raw
+
+            $IndexOfSynopsis  = $FileContent.IndexOf("## SYNOPSIS")
+            $IndexOfSyntax = $FileContent.IndexOf("## SYNTAX")
             $IndexOfDescription = $FileContent.IndexOf("## DESCRIPTION")
             $IndexOfExamples = $FileContent.IndexOf("## EXAMPLES")
             $IndexOfParameters = $FileContent.IndexOf("## PARAMETERS")
@@ -109,7 +112,7 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
                 else
                 # if ($ExampleCodeBlock.Count -eq 1)
                 {
-                    $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
+                    $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*[A-Za-z(]\w+-[A-Za-z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -CaseSensitive -AllMatches).Matches
                     # $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*(([@\$]*\(.+\))|(\[.+\]\$)|(@{[\S\s]+})|(('|`")[^\n\r'`"]*('|`")))))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
                     if ($ExampleCodeLines.Count -eq 0)
                     {
@@ -233,11 +236,23 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
 
             if ($ShouldBeDeleted -eq $null)
             {
+                # If no examples
+                if ($Examples -eq 0)
+                {
+                    $MissingExampleTitle++
+                    $MissingExampleCode++
+                    $MissingExampleOutput++
+                    $MissingExampleDescription++
+                }
+                else
+                {
+                    $MissingExampleTitle += ($ExamplesTitles | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+                    $MissingExampleCode += ($ExamplesCodes | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+                    $MissingExampleOutput += ($ExamplesOutputs | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+                    $MissingExampleDescription += ($ExamplesDescriptions | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+                }
+
                 # MissingTable
-                $MissingExampleTitle += ($ExamplesTitles | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-                $MissingExampleCode += ($ExamplesCodes | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-                $MissingExampleOutput += ($ExamplesOutputs | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-                $MissingExampleDescription += ($ExamplesDescriptions | Select-String -Pattern "{{[A-Za-z ]*}}").Count
                 if ($MissingDescription -ne 0 -or $MissingExampleTitle -ne 0 -or $MissingExampleCode -ne 0 -or $MissingExampleOutput -ne 0 -or $MissingExampleDescription -ne 0)
                 {
                     $MissingTable += New-Object Missing -Property @{ Module = $Module;
