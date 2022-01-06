@@ -73,7 +73,7 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
             # If description section exists
             if ($IndexOfDescription -ne -1)
             {
-                $DescriptionContent = $FileContent.Substring($IndexOfDescription, $IndexOfExamples - $IndexOfDescription)
+                $DescriptionContent = $FileContent.Substring($IndexOfDescription + "## DESCRIPTION".Length, $IndexOfExamples - $IndexOfDescription - "## DESCRIPTION".Length)
                 if ($DescriptionContent.Trim() -eq "")
                 {
                     $MissingDescription = 1
