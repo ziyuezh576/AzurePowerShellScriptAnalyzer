@@ -16,7 +16,7 @@ class Status {
 class Missing {
     [string]$Module
     [string]$Cmdlet
-    [int]$MissingDescription
+    [int]$MissingSynopsisOrDescription
     [int]$MissingExampleTitle
     [int]$MissingExampleCode
     [int]$MissingExampleOutput
@@ -70,7 +70,25 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
             $MissingExampleDescription = 0
             $NeedSeparating = 0
 
-            # If description section exists
+            # If Synopsis section exists
+            if ($IndexOfSynopsis -ne -1)
+            {
+                $SynopsisContent = $FileContent.Substring($IndexOfSynopsis + "## SYNOPSIS".Length, $IndexOfSyntax - $IndexOfSynopsis - "## SYNOPSIS".Length)
+                if ($SynopsisContent.Trim() -eq "")
+                {
+                    $MissingSynopsis = 1
+                }
+                else
+                {
+                    $MissingSynopsis = ($SynopsisContent | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+                }
+            }
+            else
+            {
+                $MissingSynopsis = 1
+            }
+
+            # If Description section exists
             if ($IndexOfDescription -ne -1)
             {
                 $DescriptionContent = $FileContent.Substring($IndexOfDescription + "## DESCRIPTION".Length, $IndexOfExamples - $IndexOfDescription - "## DESCRIPTION".Length)
@@ -183,10 +201,11 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
                                 }
                             # }
                             # From the start to the 1st codeline is also code, if it's not empty.
+                            $StartIndex = $ExampleCodeBlock[0].Value.IndexOf("`n")
                             $EndIndex = $ExamplesCodes[$ExamplesCodesCount_Before].Index
-                            if ($ExampleCodeBlock[0].Value.SubString(3, $EndIndex - 3).Trim() -ne "")
+                            if ($ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex).Trim() -ne "")
                             {
-                                $ExamplesCodes += $ExampleCodeBlock[0].Value.SubString(3, $EndIndex - 3)
+                                $ExamplesCodes += $ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex)
                             }
 
                             if ($ExamplesOutputsCount_Before -ne $ExamplesOutputs.Count)
@@ -257,7 +276,7 @@ dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction
                 {
                     $MissingTable += New-Object Missing -Property @{ Module = $Module;
                                                                      Cmdlet = $Cmdlet;
-                                                                     MissingDescription = $MissingDescription;
+                                                                     MissingSynopsisOrDescription = $MissingSynopsis + $MissingDescription;
                                                                      MissingExampleTitle = $MissingExampleTitle;
                                                                      MissingExampleCode = $MissingExampleCode;
                                                                      MissingExampleOutput = $MissingExampleOutput;
