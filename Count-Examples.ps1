@@ -248,10 +248,11 @@ process {
                 {
                     $ShouldBeDeleted = $null
                 }
-                $StatusTable += New-Object Status -Property @{ Module = $Module;
-                                                            Cmdlet = $Cmdlet;
-                                                            Examples = $Examples;
-                                                            ShouldBeDeleted = $ShouldBeDeleted
+                $StatusTable += New-Object Status -Property @{
+                    "Module" = $Module;
+                    "Cmdlet" = $Cmdlet;
+                    "Examples" = $Examples;
+                    "ShouldBeDeleted" = $ShouldBeDeleted
                 }
 
                 if ($ShouldBeDeleted -eq $null)
@@ -275,23 +276,25 @@ process {
                     # MissingTable
                     if ($MissingDescription -ne 0 -or $MissingExampleTitle -ne 0 -or $MissingExampleCode -ne 0 -or $MissingExampleOutput -ne 0 -or $MissingExampleDescription -ne 0)
                     {
-                        $MissingTable += New-Object Missing -Property @{ Module = $Module;
-                                                                        Cmdlet = $Cmdlet;
-                                                                        MissingSynopsisOrDescription = $MissingSynopsis + $MissingDescription;
-                                                                        MissingExampleTitle = $MissingExampleTitle;
-                                                                        MissingExampleCode = $MissingExampleCode;
-                                                                        MissingExampleOutput = $MissingExampleOutput;
-                                                                        MissingExampleDescription = $MissingExampleDescription
+                        $MissingTable += New-Object Missing -Property @{
+                            "Module" = $Module;
+                            "Cmdlet" = $Cmdlet;
+                            "MissingSynopsisOrDescription" = $MissingSynopsis + $MissingDescription;
+                            "MissingExampleTitle" = $MissingExampleTitle;
+                            "MissingExampleCode" = $MissingExampleCode;
+                            "MissingExampleOutput" = $MissingExampleOutput;
+                            "MissingExampleDescription" = $MissingExampleDescription
                         }
                     }
                     # DeletePromptAndSeparateOutputTable
                     $NeedDeleting = ($ExamplesCodes | Select-String -Pattern ".*(PS|[A-Za-z]:).*(>|&gt;)( PS)*\s*" -CaseSensitive).Count
                     if ($NeedDeleting -ne 0 -or $NeedSeparating -ne 0)
                     {
-                        $DeletePromptAndSeparateOutputTable += New-Object DeletingSeparating -Property @{ Module = $Module;
-                                                                                                        Cmdlet = $Cmdlet;
-                                                                                                        NeedDeleting = $NeedDeleting;
-                                                                                                        NeedSeparating = $NeedSeparating
+                        $DeletePromptAndSeparateOutputTable += New-Object DeletingSeparating -Property @{
+                            "Module" = $Module;
+                            "Cmdlet" = $Cmdlet;
+                            "NeedDeleting" = $NeedDeleting;
+                            "NeedSeparating" = $NeedSeparating
                         }
                     }
                 }
