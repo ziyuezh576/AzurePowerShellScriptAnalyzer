@@ -46,13 +46,13 @@ process {
     dir $AzurePowerShellSrcPath -r -Attributes Directory -Filter "help" -ErrorAction Stop | foreach `
     {
         $Module = (dir "$($_.FullName)\.." -Filter *.psd1).BaseName
-        Write-Host "Searching in Module $Module ..."
+        Write-Output "Searching in Module $Module ..."
         dir $_.FullName -Filter *.md | foreach `
         {
             # The document is not an overview or readme.
             if ($_.BaseName -match "[A-Z]\w+-[A-Z]\w+")
             {
-                Write-Host "Searching in file $($_.FullName) ..."
+                Write-Output "Searching in file $($_.FullName) ..."
                 $Cmdlet = $_.BaseName
                 $FileContent = cat $_.FullName -Raw
 
