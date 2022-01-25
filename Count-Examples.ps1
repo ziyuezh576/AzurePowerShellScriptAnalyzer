@@ -28,7 +28,7 @@ process {
         [string]$Module
         [string]$Cmdlet
         [int]$NeedDeleting
-        [int]$NeedSeparating
+        [int]$NeedSplitting
     }
 
     $AzurePowerShellSrcPath = "C:\Users\v-ziyzhe\source\repos\azure-powershell\src"
@@ -69,7 +69,7 @@ process {
                 $MissingExampleCode = 0
                 $MissingExampleOutput = 0
                 $MissingExampleDescription = 0
-                $NeedSeparating = 0
+                $NeedSplitting = 0
 
                 # If Synopsis section exists
                 if ($IndexOfSynopsis -ne -1)
@@ -131,7 +131,7 @@ process {
                     else
                     # if ($ExampleCodeBlock.Count -eq 1)
                     {
-                        $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*[A-Za-z(]\w+-[A-Za-z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*[``|] *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -CaseSensitive -AllMatches).Matches
+                        $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*[A-Za-z]\w+-[A-Za-z]\w+\b(?!(-|   +\w)))|(\n(.*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*[``|] *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -CaseSensitive -AllMatches).Matches
                         # $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*[A-Z(]\w+-[A-Z](\w|\))+)|(\n(.*(PS|[A-Za-z]:).*(>|&gt;)( PS)*)*\s*(\$\w+( *(=|\|) *))*(([@\$]*\(.+\))|(\[.+\]\$)|(@{[\S\s]+})|(('|`")[^\n\r'`"]*('|`")))))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*`` *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -AllMatches).Matches
                         if ($ExampleCodeLines.Count -eq 0)
                         {
@@ -201,23 +201,23 @@ process {
                                         $ExamplesOutputs += $ExampleOutput
                                     }
                                 # }
-                                # From the start to the 1st codeline is also code, if it's not empty.
+                                # From the start of the codeblock to the 1st codeline is description, if it's not empty.
                                 $StartIndex = $ExampleCodeBlock[0].Value.IndexOf("`n")
                                 $EndIndex = $ExamplesCodes[$ExamplesCodesCount_Before].Index
                                 if ($ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex).Trim() -ne "")
                                 {
-                                    $ExamplesCodes += $ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex)
+                                    $ExamplesDescriptions += $ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex)
                                 }
 
                                 if ($ExamplesOutputsCount_Before -ne $ExamplesOutputs.Count)
                                 {
-                                    # $NeedSeparating++
+                                    # $NeedSplitting++
                                     for ($i = $ExamplesOutputsCount_Before; $i -lt $ExamplesOutputs.Count; $i++)
                                     {
-                                        $NeedSeparating++
+                                        $NeedSplitting++
                                         if ($ExamplesOutputs[$i] -match "\n``````Output")
                                         {
-                                            $NeedSeparating--
+                                            $NeedSplitting--
                                             break
                                         }
                                     }
@@ -287,22 +287,31 @@ process {
                         }
                     }
                     # DeletePromptAndSeparateOutputTable
-                    $NeedDeleting = ($ExamplesCodes | Select-String -Pattern ".*(PS|[A-Za-z]:).*(>|&gt;)( PS)*\s*" -CaseSensitive).Count
-                    if ($NeedDeleting -ne 0 -or $NeedSeparating -ne 0)
+                    if ($ExampleCodeBlock.Count -ne 0)
                     {
-                        $DeletePromptAndSeparateOutputTable += New-Object DeletingSeparating -Property @{
-                            "Module" = $Module;
-                            "Cmdlet" = $Cmdlet;
-                            "NeedDeleting" = $NeedDeleting;
-                            "NeedSeparating" = $NeedSeparating
+                        $NeedDeleting = ($ExampleCodeBlock[0].Value | Select-String -Pattern "\n.*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*" -CaseSensitive).Count
+                        if ($NeedDeleting -ne 0 -or $NeedSplitting -ne 0)
+                        {
+                            $DeletePromptAndSeparateOutputTable += New-Object DeletingSeparating -Property @{
+                                "Module" = $Module;
+                                "Cmdlet" = $Cmdlet;
+                                "NeedDeleting" = $NeedDeleting;
+                                "NeedSplitting" = $NeedSplitting
+                            }
                         }
                     }
+
+                    # Output codes
+                    # $ExamplesCodes.Value >> pscodes.ps1
+                    ($ExamplesCodes -replace "\n.*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n") >> pscodes.ps1
+                    # Deleting and splitting
+                    # $ExampleCodeBlock[0].Value -replace "\n.*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n"
                 }
             }
         }
     }
 
-    $StatusTable | Export-Csv Status.csv -NoTypeInformation
-    $MissingTable | Export-Csv Missing.csv -NoTypeInformation
-    $DeletePromptAndSeparateOutputTable | Export-Csv DeletingSeparating.csv -NoTypeInformation
+    # $StatusTable | Export-Csv Status.csv -NoTypeInformation
+    # $MissingTable | Export-Csv Missing.csv -NoTypeInformation
+    # $DeletePromptAndSeparateOutputTable | Export-Csv DeletingSeparating.csv -NoTypeInformation
 }
