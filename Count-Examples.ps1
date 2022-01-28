@@ -319,12 +319,12 @@ process {
                         $FileContent = $FileContent.Substring(0, $IndexOfExamples + $ExamplesCodesIndexes[$i]) + $NewCode + $FileContent.Substring($IndexOfExamples + $ExamplesCodesIndexes[$i] + $ExamplesCodes[$i].Length)
                         $ExamplesCodes[$i] = $NewCode
                     }
-                    #$null = mkdir -Path "new\$Module" -ErrorAction SilentlyContinue
-                    #[IO.File]::WriteAllText("$($_.FullName)\..\new\$($_.Name)", $FileContent, (New-Object Text.UTF8Encoding($false)))
+                    $null = mkdir -Path "newmd\$Module" -ErrorAction SilentlyContinue
+                    [IO.File]::WriteAllText("newmd\$Module\$($_.Name)", $FileContent, (New-Object Text.UTF8Encoding($false)))
                     # Output codes
-                    #($ExamplesCodes -replace "\n([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n") >> pscodes.ps1
-                    $null = mkdir -Path "new\$Module" -ErrorAction SilentlyContinue
-                    $ExamplesCodes | Out-File "new\$Module\$Cmdlet.ps1" -Encoding utf8
+                    #$ExamplesCodes | Out-File pscodes.ps1 -Append -Encoding utf8
+                    $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
+                    $ExamplesCodes | Out-File "newps\$Module\$Cmdlet.ps1" -Encoding utf8
                 }
             }
         }
