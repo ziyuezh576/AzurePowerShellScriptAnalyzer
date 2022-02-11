@@ -47,6 +47,7 @@ process {
     {
         $Module = (dir "$($_.FullName)\.." -Filter *.psd1).BaseName
         Write-Output "Searching in Module $Module ..."
+        $ResultsTable = @()
         dir $_.FullName -Filter *.md | foreach `
         {
             # The document is not an overview or readme.
@@ -56,7 +57,7 @@ process {
                 $Cmdlet = $_.BaseName
                 $FileContent = cat $_.FullName -Raw
 
-                $IndexOfSynopsis  = $FileContent.IndexOf("## SYNOPSIS")
+                $IndexOfSynopsis = $FileContent.IndexOf("## SYNOPSIS")
                 $IndexOfSyntax = $FileContent.IndexOf("## SYNTAX")
                 $IndexOfDescription = $FileContent.IndexOf("## DESCRIPTION")
                 $IndexOfExamples = $FileContent.IndexOf("## EXAMPLES")
@@ -154,16 +155,16 @@ process {
                             for ($i = 0; $i -lt $ExampleCodeLines.Count; $i++)
                             {
                                 # CodeLines shouldn't end with "`", "\r", or "\n"
-                                $LastCharacter = $ExampleCodeBlock[0].Value.Substring($ExampleCodeBlock[0].Value.IndexOf($ExampleCodeLines[$i]) + $ExampleCodeLines[$i].Length - 1, 1)
-                                if ($LastCharacter -ne "``" -and $LastCharacter -ne "`r" -and $LastCharacter -ne "`n")
-                                {
+                                # $LastCharacter = $ExampleCodeBlock[0].Value.Substring($ExampleCodeBlock[0].Value.IndexOf($ExampleCodeLines[$i]) + $ExampleCodeLines[$i].Length - 1, 1)
+                                # if ($LastCharacter -ne "``" -and $LastCharacter -ne "`r" -and $LastCharacter -ne "`n")
+                                # {
                                     # If a codeline contains " :", it's not a codeline but an "| Format-List" output line.
                                     if ($ExampleCodeLines[$i].Value -notmatch " : *\w")
                                     {
                                         $ExamplesCodes += $ExampleCodeLines[$i]
                                         $ExamplesCodesIndexes += $ExamplesContent.IndexOf($ExampleContent) + $ExampleCodeBlock[0].Index + $ExampleCodeLines[$i].Index
                                     }
-                                }
+                                # }
                             }
                             # If nothing was added
                             if ($ExamplesCodes.Count -eq $ExamplesCodesCount_Before)
@@ -319,15 +320,21 @@ process {
                         $FileContent = $FileContent.Substring(0, $IndexOfExamples + $ExamplesCodesIndexes[$i]) + $NewCode + $FileContent.Substring($IndexOfExamples + $ExamplesCodesIndexes[$i] + $ExamplesCodes[$i].Length)
                         $ExamplesCodes[$i] = $NewCode
                     }
-                    $null = mkdir -Path "newmd\$Module" -ErrorAction SilentlyContinue
-                    [IO.File]::WriteAllText("newmd\$Module\$($_.Name)", $FileContent, (New-Object Text.UTF8Encoding($false)))
+                    # $null = mkdir -Path "newmd\$Module" -ErrorAction SilentlyContinue
+                    # [IO.File]::WriteAllText("newmd\$Module\$Cmdlet.md", $FileContent, (New-Object Text.UTF8Encoding($false)))
                     # Output codes
-                    #$ExamplesCodes | Out-File pscodes.ps1 -Append -Encoding utf8
+                    # $ExamplesCodes | Out-File pscodes.ps1 -Append -Encoding utf8
+                    # Analyze codes
                     $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
-                    $ExamplesCodes | Out-File "newps\$Module\$Cmdlet.ps1" -Encoding utf8
+                    [IO.File]::WriteAllText("newps\$Module\$Cmdlet.ps1", $ExamplesCodes, (New-Object Text.UTF8Encoding($false)))
+                    $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
+                    $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
+                    $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
+                    $ResultsTable += $Results
                 }
             }
         }
+        $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
     }
 
     # $StatusTable | Export-Csv Status.csv -NoTypeInformation
