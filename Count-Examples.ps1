@@ -63,6 +63,7 @@ process {
                 $IndexOfExamples = $FileContent.IndexOf("## EXAMPLES")
                 $IndexOfParameters = $FileContent.IndexOf("## PARAMETERS")
 
+                $ExampleNumber = 0
                 $ExamplesCodes = @()
                 $ExamplesCodesIndexes = @()
                 $ExamplesOutputs = @()
@@ -114,6 +115,10 @@ process {
                 $ExamplesContentArray = $ExamplesContent -split "\n###.+" | Select-Object -Skip 1
                 foreach ($ExampleContent in $ExamplesContentArray)
                 {
+                    $ExampleNumber++
+                    $ExampleCodes = @()
+                    $ExampleCodesIndexes = @()
+    
                     $ExampleCodeBlock = ($ExampleContent | Select-String -Pattern " *`````` *(.*\n)+ *`````` *" -AllMatches).Matches
                     if ($ExampleCodeBlock.Count -eq 0)
                     {
@@ -133,15 +138,15 @@ process {
                     else
                     # if ($ExampleCodeBlock.Count -eq 1)
                     {
-                        #$ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*[A-Za-z]\w+-[A-Za-z]\w+\b(?!(-|   +\w)))|(\n(([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*[``|] *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)" -CaseSensitive -AllMatches).Matches
-                        #$ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "\n(([A-Za-z \t])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((([A-Za-z]\w+-[A-Za-z]\w+\b(?!(-|   +\w)))|((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*[``|][ \t]*(\n|\r\n)?)*([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)))" -CaseSensitive -AllMatches).Matches
+                        #$ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "((\n(([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*[A-Za-z]\w+-[A-Za-z]\w+\b(?!(-|   +\w)))|(\n(([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$)))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*[``|] *(\n|\r\n))*[\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*(?=\n|\r\n|#)" -CaseSensitive -AllMatches).Matches
+                        #$ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern "\n(([A-Za-z \t])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((([A-Za-z]\w+-[A-Za-z]\w+\b(?!(-|   +\w)))|((@?\(.+\) *[|.-] *\w)|(\[.+\]\$)|(@{.+})|('[^\n\r']*' *[|.-] *\w)|(`"[^\n\r`"]*`" *[|.-] *\w)|\$))([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*[``|][ \t]*(\n|\r\n)?)*([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*(?=\n|\r\n|#)))" -CaseSensitive -AllMatches).Matches
                         $RegexPattern = "\n(([A-Za-z \t])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*)*[ \t]*((([A-Za-z]\w+-[A-Za-z]\w+\b(.ps1)?(?!(-|   +\w)))|(" +
                         "(@?\((?>\((?<pair>)|[^\(\)]+|\)(?<-pair>))*(?(pair)(?!))\) *[|.-] *\w)|" +
                         "(\[(?>\[(?<pair>)|[^\[\]]+|\](?<-pair>))*(?(pair)(?!))\]\$)|" +
                         "(@{(?>{(?<pair>)|[^{}]+|}(?<-pair>))*(?(pair)(?!))})|" +
                         "('(?>'(?<pair>)|[^']+|'(?<-pair>))*(?(pair)(?!))' *[|.-] *\w)|" +
                         "((?<!``)`"(?>(?<!``)`"(?<pair>)|[\s\S]|(?<!``)`"(?<-pair>))*(?(pair)(?!))(?<!``)`" *[|.-] *\w)|" +
-                        "\$))(?!\.)([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*[``|][ \t]*(\n|\r\n)?)*([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%]*(?=\n|\r\n|#)))"
+                        "\$))(?!\.)([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*[``|][ \t]*(\n|\r\n)?)*([\w-~``'`"$= \t:;<>@()\[\]{},.+*/|\\&!?%#]*(?=\n|\r\n|#)))"
                         $ExampleCodeLines = ($ExampleCodeBlock[0].Value | Select-String -Pattern $RegexPattern -CaseSensitive -AllMatches).Matches
                         if ($ExampleCodeLines.Count -eq 0)
                         {
@@ -150,7 +155,7 @@ process {
                         }
                         else
                         {
-                            $ExamplesCodesCount_Before = $ExamplesCodes.Count
+                            $ExampleCodesCount_Before = $ExampleCodes.Count
 
                             for ($i = 0; $i -lt $ExampleCodeLines.Count; $i++)
                             {
@@ -161,13 +166,13 @@ process {
                                     # If a codeline contains " :", it's not a codeline but an "| Format-List" output line.
                                     if ($ExampleCodeLines[$i].Value -notmatch " : *\w")
                                     {
-                                        $ExamplesCodes += $ExampleCodeLines[$i]
-                                        $ExamplesCodesIndexes += $ExamplesContent.IndexOf($ExampleContent) + $ExampleCodeBlock[0].Index + $ExampleCodeLines[$i].Index
+                                        $ExampleCodes += $ExampleCodeLines[$i]
+                                        $ExampleCodesIndexes += $ExamplesContent.IndexOf($ExampleContent) + $ExampleCodeBlock[0].Index + $ExampleCodeLines[$i].Index
                                     }
                                 # }
                             }
                             # If nothing was added
-                            if ($ExamplesCodes.Count -eq $ExamplesCodesCount_Before)
+                            if ($ExampleCodes.Count -eq $ExampleCodesCount_Before)
                             {
                                 # $MissingExampleCode++
                                 # $MissingExampleOutput++
@@ -177,10 +182,10 @@ process {
                                 $ExamplesOutputsCount_Before = $ExamplesOutputs.Count
 
                                 # Content between codelines is output
-                                for ($i = $ExamplesCodesCount_Before; $i -lt $ExamplesCodes.Count - 1; $i++)
+                                for ($i = $ExampleCodesCount_Before; $i -lt $ExampleCodes.Count - 1; $i++)
                                 {
-                                    $StartIndex = $ExamplesCodes[$i].Index + $ExamplesCodes[$i].Length
-                                    $NextStartIndex = $ExamplesCodes[$i + 1].Index
+                                    $StartIndex = $ExampleCodes[$i].Index + $ExampleCodes[$i].Length
+                                    $NextStartIndex = $ExampleCodes[$i + 1].Index
                                     if ($ExampleCodeBlock[0].Value.SubString($StartIndex, $NextStartIndex - $StartIndex).Trim() -ne "")
                                     {
                                         # If an output line starts with "-", it's an incomplete codeline
@@ -200,7 +205,7 @@ process {
                                 }
                                 # From the end of the last codeline to the end is output ("```" in the end is excluded)
                                 # If an output line starts with "-", it's an incomplete codeline
-                                $ExampleOutput = $ExampleCodeBlock[0].Value.SubString($ExamplesCodes[-1].Index + $ExamplesCodes[-1].Length, $ExampleCodeBlock[0].Length - $ExamplesCodes[-1].Index - $ExamplesCodes[-1].Length - 3).Trim()
+                                $ExampleOutput = $ExampleCodeBlock[0].Value.SubString($ExampleCodes[-1].Index + $ExampleCodes[-1].Length, $ExampleCodeBlock[0].Length - $ExampleCodes[-1].Index - $ExampleCodes[-1].Length - 3).Trim()
                                 # if ($ExampleOutput -match "^-\w")
                                 # {
                                 #     $MissingExampleCode++
@@ -214,7 +219,7 @@ process {
                                 # }
                                 # From the start of the codeblock to the 1st codeline is description, if it's not empty.
                                 $StartIndex = $ExampleCodeBlock[0].Value.IndexOf("`n")
-                                $EndIndex = $ExamplesCodes[$ExamplesCodesCount_Before].Index
+                                $EndIndex = $ExampleCodes[$ExampleCodesCount_Before].Index
                                 if ($ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex).Trim() -ne "")
                                 {
                                     $ExamplesDescriptions += $ExampleCodeBlock[0].Value.SubString($StartIndex, $EndIndex - $StartIndex)
@@ -247,6 +252,24 @@ process {
                             $ExamplesDescriptions += $ExampleDescription
                         # }
                     }
+
+                    # Deleting
+                    $ExamplesCodes += $ExampleCodes
+                    $ExamplesCodesIndexes += $ExampleCodesIndexes
+                    for ($i = $ExampleCodes.Count - 1; $i -ge 0; $i--)
+                    {
+                        $NewCode = $ExampleCodes[$i] -replace "\n([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n"
+                        $NewCode = $NewCode -replace "(?<=[A-Za-z]\w+-[A-Za-z]\w+)\.ps1", ""
+                        $ExampleCodes[$i] = $NewCode
+                    }
+                    # Analyze codes
+                    $null = mkdir -Path "newps-1\$Module" -ErrorAction SilentlyContinue
+                    [IO.File]::WriteAllText("newps-1\$Module\$Cmdlet-$ExampleNumber.ps1", $ExampleCodes, (New-Object Text.UTF8Encoding($false)))
+                    # $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet-$ExampleNumber.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
+                    # $Results = $Results | Select-Object -Property @{Name='ExampleNumber';Expression={$ExampleNumber}}, *
+                    # $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
+                    # $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
+                    # $ResultsTable += $Results
                 }
 
                 # StatusTable
@@ -325,16 +348,16 @@ process {
                     # Output codes
                     # $ExamplesCodes | Out-File pscodes.ps1 -Append -Encoding utf8
                     # Analyze codes
-                    $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
-                    [IO.File]::WriteAllText("newps\$Module\$Cmdlet.ps1", $ExamplesCodes, (New-Object Text.UTF8Encoding($false)))
-                    $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
-                    $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
-                    $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
-                    $ResultsTable += $Results
+                    # $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
+                    # [IO.File]::WriteAllText("newps\$Module\$Cmdlet.ps1", $ExamplesCodes, (New-Object Text.UTF8Encoding($false)))
+                    # $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
+                    # $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
+                    # $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
+                    # $ResultsTable += $Results
                 }
             }
         }
-        $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
+        # $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
     }
 
     # $StatusTable | Export-Csv Status.csv -NoTypeInformation
