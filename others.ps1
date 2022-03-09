@@ -1,11 +1,3 @@
-$ResultsTable = Import-Csv -Path C:\Users\v-ziyzhe\Desktop\PSSA.csv
-$ResultsTable = $ResultsTable | where {
-    $_.RuleName.StartsWith("a\")
-}
-$ResultsTable = $ResultsTable | Select-Object *,@{Name='CommandName';Expression={$_.ScriptName.Split(".")[0]}}
-$ResultsTable = $ResultsTable | Select-Object *,@{Name='Module';Expression={(Get-Command $_.CommandName -ErrorAction SilentlyContinue).Source}}
-$ResultsTable | Export-Csv Desktop\PSSA2.csv -NoTypeInformation
-
 Get-ChildItem -Directory newps | foreach {
     $Module = $_.Name
     $ResultsTable = @()
