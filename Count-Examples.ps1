@@ -2,8 +2,8 @@
 param(
     [Parameter(Mandatory=$true, HelpMessage="Input searching path. Press Enter for current path.")]
     [AllowEmptyString()]
-    [string]$AzurePowerShellSrcPath = "$env:USERPROFILE\source\repos\azure-powershell\src",
-    [string]$MicrosoftDocsAzpsPath = "$env:USERPROFILE\source\repos\azure-docs-powershell\azps-7.3.0"
+    [string]$AzurePowerShellSrcPath,
+    [string]$MicrosoftDocsAzpsPath
 )
 
 process {
