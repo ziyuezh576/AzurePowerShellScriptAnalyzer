@@ -226,7 +226,7 @@ process {
                         # }
                     }
 
-                    # Deleting
+                    # Delete prompts.
                     $ExamplesCodes += $ExampleCodes
                     $ExamplesCodesIndexes += $ExampleCodesIndexes
                     for ($i = $ExampleCodes.Count - 1; $i -ge 0; $i--)
@@ -235,14 +235,9 @@ process {
                         $NewCode = $NewCode -replace "(?<=[A-Za-z]\w+-[A-Za-z]\w+)\.ps1", ""
                         $ExampleCodes[$i] = $NewCode
                     }
-                    # Analyze codes
+                    # Output codes by example.
                     $null = mkdir -Path "newps-1\$Module" -ErrorAction SilentlyContinue
                     [IO.File]::WriteAllText("newps-1\$Module\$Cmdlet-$ExampleNumber.ps1", $ExampleCodes, (New-Object Text.UTF8Encoding($false)))
-                    # $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet-$ExampleNumber.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
-                    # $Results = $Results | Select-Object -Property @{Name='ExampleNumber';Expression={$ExampleNumber}}, *
-                    # $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
-                    # $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
-                    # $ResultsTable += $Results
                 }
 
                 # StatusTable
@@ -308,7 +303,7 @@ process {
                         }
                     }
 
-                    # Deleting and splitting
+                    # Deleting prompts and splitting
                     for ($i = $ExamplesCodes.Count - 1; $i -ge 0; $i--)
                     {
                         $NewCode = $ExamplesCodes[$i] -replace "\n([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n"
@@ -316,24 +311,22 @@ process {
                         $FileContent = $FileContent.Substring(0, $IndexOfExamples + $ExamplesCodesIndexes[$i]) + $NewCode + $FileContent.Substring($IndexOfExamples + $ExamplesCodesIndexes[$i] + $ExamplesCodes[$i].Length)
                         $ExamplesCodes[$i] = $NewCode
                     }
-                    # $null = mkdir -Path "newmd\$Module" -ErrorAction SilentlyContinue
-                    # [IO.File]::WriteAllText("newmd\$Module\$Cmdlet.md", $FileContent, (New-Object Text.UTF8Encoding($false)))
-                    # Output codes
-                    # $ExamplesCodes | Out-File pscodes.ps1 -Append -Encoding utf8
-                    # Analyze codes
-                    # $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
-                    # [IO.File]::WriteAllText("newps\$Module\$Cmdlet.ps1", $ExamplesCodes, (New-Object Text.UTF8Encoding($false)))
-                    # $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-Severity Error #-IncludeDefaultRules
-                    # $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
-                    # $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
-                    # $ResultsTable += $Results
+                    $null = mkdir -Path "newmd\$Module" -ErrorAction SilentlyContinue
+                    [IO.File]::WriteAllText("newmd\$Module\$Cmdlet.md", $FileContent, (New-Object Text.UTF8Encoding($false)))
+                    # Analyze codes.
+                    $null = mkdir -Path "newps\$Module" -ErrorAction SilentlyContinue
+                    [IO.File]::WriteAllText("newps\$Module\$Cmdlet.ps1", $ExamplesCodes, (New-Object Text.UTF8Encoding($false)))
+                    $Results = Invoke-ScriptAnalyzer -Path newps\$Module\$Cmdlet.ps1 -CustomRulePath Desktop\Measure-Examples.psm1 #-IncludeDefaultRules
+                    $Results = $Results | Select-Object -Property @{Name='Cmdlet';Expression={$_.ScriptName.Split(".")[0]}}, *
+                    $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
+                    $ResultsTable += $Results
                 }
             }
         }
-        # $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
+        $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
     }
 
-    # $StatusTable | Export-Csv Status.csv -NoTypeInformation
-    # $MissingTable | Export-Csv Missing.csv -NoTypeInformation
-    # $DeletePromptAndSeparateOutputTable | Export-Csv DeletingSeparating.csv -NoTypeInformation
+    $StatusTable | Export-Csv Status.csv -NoTypeInformation
+    $MissingTable | Export-Csv Missing.csv -NoTypeInformation
+    $DeletePromptAndSeparateOutputTable | Export-Csv DeletingSeparating.csv -NoTypeInformation
 }
