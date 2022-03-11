@@ -1,39 +1,12 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true, ValueFromPipeline=$true, HelpMessage="Input searching path. Press Enter for current path.")]
+    [Parameter(Mandatory=$true, HelpMessage="Input searching path. Press Enter for current path.")]
     [AllowEmptyString()]
-    [string]$AzurePowerShellSrcPath,
-    [string]$MicrosoftDocsAzpsPath
+    [string]$AzurePowerShellSrcPath = "$env:USERPROFILE\source\repos\azure-powershell\src",
+    [string]$MicrosoftDocsAzpsPath = "$env:USERPROFILE\source\repos\azure-docs-powershell\azps-7.3.0"
 )
 
 process {
-    class Status {
-        [string]$Module
-        [string]$Cmdlet
-        [int]$Examples
-        [string]$ShouldBeDeleted
-    }
-
-    class Missing {
-        [string]$Module
-        [string]$Cmdlet
-        [int]$MissingSynopsisOrDescription
-        [int]$MissingExampleTitle
-        [int]$MissingExampleCode
-        [int]$MissingExampleOutput
-        [int]$MissingExampleDescription
-    }
-
-    class DeletingSeparating {
-        [string]$Module
-        [string]$Cmdlet
-        [int]$NeedDeleting
-        [int]$NeedSplitting
-    }
-
-    $AzurePowerShellSrcPath = "C:\Users\v-ziyzhe\source\repos\azure-powershell\src"
-    $MicrosoftDocsAzpsPath = "C:\Users\v-ziyzhe\source\repos\azure-docs-powershell\azps-7.0.0"
-
     $StatusTable = @()
     $MissingTable = @()
     $DeletePromptAndSeparateOutputTable = @()
@@ -282,11 +255,11 @@ process {
                 {
                     $ShouldBeDeleted = $null
                 }
-                $StatusTable += New-Object Status -Property @{
-                    "Module" = $Module;
-                    "Cmdlet" = $Cmdlet;
-                    "Examples" = $Examples;
-                    "ShouldBeDeleted" = $ShouldBeDeleted
+                $StatusTable += New-Object PSObject -Property @{
+                    Module = $Module
+                    Cmdlet = $Cmdlet
+                    Examples = $Examples
+                    ShouldBeDeleted = $ShouldBeDeleted
                 }
 
                 if ($ShouldBeDeleted -eq $null)
@@ -310,14 +283,14 @@ process {
                     # MissingTable
                     if ($MissingDescription -ne 0 -or $MissingExampleTitle -ne 0 -or $MissingExampleCode -ne 0 -or $MissingExampleOutput -ne 0 -or $MissingExampleDescription -ne 0)
                     {
-                        $MissingTable += New-Object Missing -Property @{
-                            "Module" = $Module;
-                            "Cmdlet" = $Cmdlet;
-                            "MissingSynopsisOrDescription" = $MissingSynopsis + $MissingDescription;
-                            "MissingExampleTitle" = $MissingExampleTitle;
-                            "MissingExampleCode" = $MissingExampleCode;
-                            "MissingExampleOutput" = $MissingExampleOutput;
-                            "MissingExampleDescription" = $MissingExampleDescription
+                        $MissingTable += New-Object PSObject -Property @{
+                            Module = $Module
+                            Cmdlet = $Cmdlet
+                            MissingSynopsisOrDescription = $MissingSynopsis + $MissingDescription
+                            MissingExampleTitle = $MissingExampleTitle
+                            MissingExampleCode = $MissingExampleCode
+                            MissingExampleOutput = $MissingExampleOutput
+                            MissingExampleDescription = $MissingExampleDescription
                         }
                     }
                     # DeletePromptAndSeparateOutputTable
@@ -326,11 +299,11 @@ process {
                         $NeedDeleting = ($ExampleCodeBlock[0].Value | Select-String -Pattern "\n([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*" -CaseSensitive).Count
                         if ($NeedDeleting -ne 0 -or $NeedSplitting -ne 0)
                         {
-                            $DeletePromptAndSeparateOutputTable += New-Object DeletingSeparating -Property @{
-                                "Module" = $Module;
-                                "Cmdlet" = $Cmdlet;
-                                "NeedDeleting" = $NeedDeleting;
-                                "NeedSplitting" = $NeedSplitting
+                            $DeletePromptAndSeparateOutputTable += New-Object PSObject -Property @{
+                                Module = $Module
+                                Cmdlet = $Cmdlet
+                                NeedDeleting = $NeedDeleting
+                                NeedSplitting = $NeedSplitting
                             }
                         }
                     }
