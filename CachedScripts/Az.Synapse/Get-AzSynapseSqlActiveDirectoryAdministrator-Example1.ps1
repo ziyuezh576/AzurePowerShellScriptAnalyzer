@@ -1,0 +1,2 @@
+
+Get-AzSynapseSqlActiveDirectoryAdministrator -WorkspaceName ContosoWorkspace

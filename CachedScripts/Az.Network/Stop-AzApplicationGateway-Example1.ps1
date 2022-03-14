@@ -1,0 +1,2 @@
+
+Stop-AzApplicationGateway -ApplicationGateway $AppGw

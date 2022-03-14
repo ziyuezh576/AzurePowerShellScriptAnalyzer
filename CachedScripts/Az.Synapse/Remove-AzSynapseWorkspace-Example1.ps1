@@ -1,0 +1,2 @@
+
+Remove-AzSynapseWorkspace -Name ContosoWorkspace

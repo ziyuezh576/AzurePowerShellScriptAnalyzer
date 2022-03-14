@@ -1,0 +1,2 @@
+
+Get-AzNetworkSecurityGroup -Name nsg*

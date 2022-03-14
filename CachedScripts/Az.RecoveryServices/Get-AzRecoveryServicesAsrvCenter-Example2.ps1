@@ -1,0 +1,2 @@
+
+Get-AzRecoveryServicesAsrvCenter -Fabric $Fabric

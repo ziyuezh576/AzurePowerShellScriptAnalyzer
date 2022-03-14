@@ -1,0 +1,2 @@
+
+Get-AzSecuritySetting -SettingName "MCAS"

@@ -1,0 +1,2 @@
+
+New-AzAlertRuleEmail -SendToServiceOwners

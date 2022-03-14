@@ -1,0 +1,2 @@
+
+Disable-AzStackHCIAttestation -RemoveVM

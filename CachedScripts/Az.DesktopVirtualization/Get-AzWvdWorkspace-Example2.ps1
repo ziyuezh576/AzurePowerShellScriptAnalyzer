@@ -1,0 +1,2 @@
+
+Get-AzWvdWorkspace -ResourceGroupName ResourceGroupName

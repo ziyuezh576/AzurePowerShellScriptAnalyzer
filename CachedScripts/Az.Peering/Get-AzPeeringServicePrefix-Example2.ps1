@@ -1,0 +1,2 @@
+
+Get-AzPeeringServicePrefix -ResourceId $peeringServicePrefixResourceId 

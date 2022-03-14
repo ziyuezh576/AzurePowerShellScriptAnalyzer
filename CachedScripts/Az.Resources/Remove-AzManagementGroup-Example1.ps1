@@ -1,0 +1,2 @@
+
+Remove-AzManagementGroup -GroupName "TestGroup"

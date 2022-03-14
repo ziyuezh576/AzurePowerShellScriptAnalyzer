@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnCustomDomain -ResourceId $customDomainResourceId

@@ -1,0 +1,2 @@
+
+Remove-AzOperationalInsightsDataSource -ResourceGroupName testrg -WorkspaceName LogAnalyticsWorkspace -Name DataSource_CustomLog_Customlog_CL

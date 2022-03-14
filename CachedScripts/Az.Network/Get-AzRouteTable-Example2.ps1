@@ -1,0 +1,2 @@
+
+Get-AzRouteTable -Name RouteTable*

@@ -1,0 +1,2 @@
+
+Get-AzNetworkUsage -Location westcentralus

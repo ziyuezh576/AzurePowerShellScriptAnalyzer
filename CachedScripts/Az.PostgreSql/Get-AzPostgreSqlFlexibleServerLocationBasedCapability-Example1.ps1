@@ -1,0 +1,2 @@
+
+Get-AzPostgreSqlFlexibleServerLocationBasedCapability -Location eastus

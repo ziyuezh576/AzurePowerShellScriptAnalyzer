@@ -1,0 +1,2 @@
+
+Reset-AzSynapseSqlAuditSetting -WorkspaceName ContosoWorkspace

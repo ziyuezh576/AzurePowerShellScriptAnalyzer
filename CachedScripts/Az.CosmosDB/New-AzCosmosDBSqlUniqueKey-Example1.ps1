@@ -1,0 +1,2 @@
+
+New-AzCosmosDBSqlUniqueKey -Path {path}

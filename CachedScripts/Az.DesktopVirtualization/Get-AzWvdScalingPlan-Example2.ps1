@@ -1,0 +1,2 @@
+
+Get-AzWvdScalingPlan -ResourceGroupName ResourceGroupName

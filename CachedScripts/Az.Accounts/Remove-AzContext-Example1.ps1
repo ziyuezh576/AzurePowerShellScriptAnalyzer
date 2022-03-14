@@ -1,0 +1,2 @@
+
+Remove-AzContext -Name Default

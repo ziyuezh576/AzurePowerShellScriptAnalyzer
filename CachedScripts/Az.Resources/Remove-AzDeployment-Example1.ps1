@@ -1,0 +1,2 @@
+
+Remove-AzDeployment -Name "RolesDeployment"

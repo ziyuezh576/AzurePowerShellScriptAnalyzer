@@ -1,0 +1,2 @@
+
+Get-AzManagementGroup -GroupName TestGroup

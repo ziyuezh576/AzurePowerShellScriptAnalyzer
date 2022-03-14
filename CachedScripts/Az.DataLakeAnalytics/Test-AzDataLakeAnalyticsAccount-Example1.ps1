@@ -1,0 +1,2 @@
+
+Test-AzDataLakeAnalyticsAccount -Name "ContosoAdlAccount"

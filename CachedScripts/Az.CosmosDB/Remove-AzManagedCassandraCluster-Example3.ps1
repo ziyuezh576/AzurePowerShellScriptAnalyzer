@@ -1,0 +1,2 @@
+
+$clusterResource | Remove-AzManagedCassandraCluster

@@ -1,0 +1,2 @@
+
+Get-AzStorageQueue -Name queue*

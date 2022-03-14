@@ -1,0 +1,2 @@
+
+Get-AzBatchJobStatistic -BatchContext $Context

@@ -1,0 +1,2 @@
+
+New-AzOperationalInsightsLinuxPerformanceObjectDataSource -ResourceGroupName testrg -WorkspaceName LogAnalyticsWorkspace -Name performance -ObjectName object -CounterNames counter

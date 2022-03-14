@@ -1,0 +1,2 @@
+
+Get-AzADServicePrincipal -DisplayNameStartsWith $prefix

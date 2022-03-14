@@ -1,0 +1,4 @@
+
+Remove-AzMaintenanceConfiguration -ResourceGroupName smdtest -Name workervmscentralus
+
+Remove-AzMaintenanceConfiguration operation

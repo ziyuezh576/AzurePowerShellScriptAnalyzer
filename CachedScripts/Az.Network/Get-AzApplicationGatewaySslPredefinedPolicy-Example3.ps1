@@ -1,0 +1,2 @@
+
+Get-AzApplicationGatewaySslPredefinedPolicy -Name AppGwSslPolicy2017*

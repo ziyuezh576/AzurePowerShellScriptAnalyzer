@@ -1,0 +1,2 @@
+
+Reset-AzSynapseSqlAdvancedThreatProtectionSetting -WorkspaceName ContosoWorkspace

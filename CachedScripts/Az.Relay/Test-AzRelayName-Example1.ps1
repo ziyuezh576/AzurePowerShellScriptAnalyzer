@@ -1,0 +1,2 @@
+
+Test-AzRelayName -Namespace TestingtheAvailability

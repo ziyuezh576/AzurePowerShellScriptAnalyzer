@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnRoute -ResourceId $routeResourceId

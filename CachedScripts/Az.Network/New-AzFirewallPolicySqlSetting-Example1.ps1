@@ -1,0 +1,2 @@
+
+New-AzFirewallPolicySqlSetting -AllowSqlRedirect

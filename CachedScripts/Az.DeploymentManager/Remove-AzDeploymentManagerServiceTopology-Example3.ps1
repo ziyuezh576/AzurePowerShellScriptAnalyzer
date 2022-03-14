@@ -1,0 +1,2 @@
+
+Remove-AzDeploymentManagerService -InputObject $serviceTopologyObject

@@ -1,0 +1,2 @@
+
+Get-AzDiskPoolZone -Location eastus

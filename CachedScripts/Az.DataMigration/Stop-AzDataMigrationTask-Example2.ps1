@@ -1,0 +1,2 @@
+
+Stop-AzDataMigrationTask -InputObject $MyDMSTask

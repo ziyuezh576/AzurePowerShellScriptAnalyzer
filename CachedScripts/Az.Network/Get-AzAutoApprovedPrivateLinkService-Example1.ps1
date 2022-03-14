@@ -1,0 +1,2 @@
+
+Get-AzAutoApprovedPrivateLinkService -Location westus -ResourceGroupName TestResourceGroup

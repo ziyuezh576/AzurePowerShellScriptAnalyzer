@@ -1,0 +1,2 @@
+
+Get-AzSignalRUsage eastus

@@ -1,0 +1,2 @@
+
+Get-AzCdnEndpointNameAvailability -EndpointName myendpoint

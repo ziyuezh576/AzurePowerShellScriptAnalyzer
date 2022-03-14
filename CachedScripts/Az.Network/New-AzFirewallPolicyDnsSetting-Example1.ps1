@@ -1,0 +1,2 @@
+
+New-AzFirewallPolicyDnsSetting -EnableProxy

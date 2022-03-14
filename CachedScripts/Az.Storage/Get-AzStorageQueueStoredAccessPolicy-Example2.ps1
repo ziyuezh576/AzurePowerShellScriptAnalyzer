@@ -1,0 +1,2 @@
+
+Get-AzStorageQueueStoredAccessPolicy -Queue "MyQueue"

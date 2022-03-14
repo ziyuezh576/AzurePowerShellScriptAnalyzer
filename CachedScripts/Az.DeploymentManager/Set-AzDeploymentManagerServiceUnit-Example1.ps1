@@ -1,0 +1,2 @@
+
+Set-AzDeploymentManagerServiceUnit -InputObject $serviceUnitObject

@@ -1,0 +1,2 @@
+
+Get-AzDataShareAccount -ResourceGroupName "ADS"

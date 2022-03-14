@@ -1,0 +1,2 @@
+
+Connect-AzContainerRegistry -Name $RegistryName

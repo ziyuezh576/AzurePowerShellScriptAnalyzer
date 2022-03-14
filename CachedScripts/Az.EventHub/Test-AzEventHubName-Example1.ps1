@@ -1,0 +1,2 @@
+
+Test-AzEventhubName -Namespace MyNameSapceName

@@ -1,0 +1,2 @@
+
+Get-AzDataLakeAnalyticsCatalogItemAclEntry -Account "contosoadla"

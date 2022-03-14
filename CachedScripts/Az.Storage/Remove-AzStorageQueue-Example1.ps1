@@ -1,0 +1,2 @@
+
+Remove-AzStorageQueue "ContosoQueue01"

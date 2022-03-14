@@ -1,0 +1,2 @@
+
+Get-AzDeploymentManagerStep -InputObject $stepObject

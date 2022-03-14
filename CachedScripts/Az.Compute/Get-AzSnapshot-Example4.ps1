@@ -1,0 +1,2 @@
+
+Get-AzSnapshot -SnapshotName "SnapshotName*"

@@ -1,0 +1,2 @@
+
+Get-AzCognitiveServicesCommitmentTier -Location 'WestUS'

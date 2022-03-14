@@ -1,0 +1,2 @@
+
+Enable-AzSynapseWorkspace -WorkspaceName ContosoWorkspace

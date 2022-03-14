@@ -1,0 +1,2 @@
+
+Remove-AzDeploymentManagerStep -InputObject $stepObject

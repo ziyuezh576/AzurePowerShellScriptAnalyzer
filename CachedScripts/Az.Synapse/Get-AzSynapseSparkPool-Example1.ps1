@@ -1,0 +1,2 @@
+
+Get-AzSynapseSparkPool -WorkspaceName ContosoWorkspace

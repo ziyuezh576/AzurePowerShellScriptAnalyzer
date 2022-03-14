@@ -1,0 +1,2 @@
+
+Test-AzContainerRegistryNameAvailability -Name 'SomeRegistryName'

@@ -1,0 +1,2 @@
+
+Remove-AzEventGridSubscription -EventSubscriptionName EventSubscription1

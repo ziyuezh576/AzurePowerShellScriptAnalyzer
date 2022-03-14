@@ -1,0 +1,2 @@
+
+Get-AzPowerBIEmbeddedCapacity -ResourceGroupName "testRG"

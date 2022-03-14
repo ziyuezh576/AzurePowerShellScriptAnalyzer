@@ -1,0 +1,2 @@
+
+Get-AzSqlVirtualCluster -ResourceGroupName ResourceGroup01

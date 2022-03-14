@@ -1,0 +1,2 @@
+
+Get-AzAvailablePrivateEndpointType -Location eastus

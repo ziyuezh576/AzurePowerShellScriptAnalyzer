@@ -1,0 +1,2 @@
+
+Get-AzRecoveryServicesVault -ResourceGroupName "resourceGroup"

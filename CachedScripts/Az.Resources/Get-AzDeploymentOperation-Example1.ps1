@@ -1,0 +1,2 @@
+
+Get-AzDeploymentOperation -DeploymentName test

@@ -1,0 +1,2 @@
+
+Get-AzWvdApplicationGroup -ResourceGroupName ResourceGroupName -Name ApplicationGroupName

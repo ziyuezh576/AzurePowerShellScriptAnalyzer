@@ -1,0 +1,2 @@
+
+Get-AzConnectedKubernetes -ResourceGroupName azps_test_group

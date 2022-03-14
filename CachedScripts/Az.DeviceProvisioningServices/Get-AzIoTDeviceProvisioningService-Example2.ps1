@@ -1,0 +1,2 @@
+
+Get-AzIoTDeviceProvisioningService -ResourceGroupName "myresourcegroup"

@@ -1,0 +1,2 @@
+
+Get-AzSynapseTrigger -WorkspaceName ContosoWorkspace

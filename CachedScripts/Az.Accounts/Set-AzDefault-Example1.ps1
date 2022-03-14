@@ -1,0 +1,2 @@
+
+Set-AzDefault -ResourceGroupName myResourceGroup

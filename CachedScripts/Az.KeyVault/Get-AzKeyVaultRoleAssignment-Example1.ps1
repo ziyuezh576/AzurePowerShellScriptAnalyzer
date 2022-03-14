@@ -1,0 +1,2 @@
+
+Get-AzKeyVaultRoleAssignment -HsmName myHsm

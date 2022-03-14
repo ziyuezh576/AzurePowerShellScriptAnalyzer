@@ -1,0 +1,2 @@
+
+Get-AzKeyVaultManagedStorageAccount -VaultName 'myvault'

@@ -1,0 +1,2 @@
+
+Remove-AzPolicyDefinition -Name 'VMPolicyDefinition'

@@ -1,0 +1,4 @@
+
+Connect-AzAccount
+
+Get-AzTenant

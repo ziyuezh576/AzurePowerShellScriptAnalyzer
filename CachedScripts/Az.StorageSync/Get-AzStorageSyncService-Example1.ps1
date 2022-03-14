@@ -1,0 +1,2 @@
+
+Get-AzStorageSyncService -ResourceGroupName "myResourceGroup"

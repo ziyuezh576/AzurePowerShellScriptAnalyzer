@@ -1,0 +1,2 @@
+
+Set-AzFirewallPolicy -InputObject $fp

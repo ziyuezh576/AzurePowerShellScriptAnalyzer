@@ -1,0 +1,2 @@
+
+Get-AzADSpCredential -DisplayName $name

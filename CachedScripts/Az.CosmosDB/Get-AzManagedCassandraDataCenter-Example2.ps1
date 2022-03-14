@@ -1,0 +1,2 @@
+
+Get-AzManagedCassandraDataCenter -ResourceId {resourceId}

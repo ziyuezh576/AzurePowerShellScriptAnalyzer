@@ -1,0 +1,2 @@
+
+Get-AzKeyVaultManagedHsm -Name 'myhsm'

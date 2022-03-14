@@ -1,0 +1,2 @@
+
+Get-AzDataLakeAnalyticsJobRecurrence -AccountName "contosoadla"

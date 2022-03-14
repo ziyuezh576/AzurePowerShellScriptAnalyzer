@@ -1,0 +1,2 @@
+
+Get-AzContainerRegistryRepository -RegistryName registry

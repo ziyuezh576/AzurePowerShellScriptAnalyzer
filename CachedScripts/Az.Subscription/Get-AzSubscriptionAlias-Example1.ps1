@@ -1,0 +1,2 @@
+
+Get-AzSubscriptionAlias -AliasName "ExistingAliasName"

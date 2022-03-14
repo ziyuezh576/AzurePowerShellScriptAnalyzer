@@ -1,0 +1,2 @@
+
+Install-AzAksKubectl -Version latest

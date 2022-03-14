@@ -1,0 +1,2 @@
+
+Remove-AzFirewallPolicy -InputObject $fp

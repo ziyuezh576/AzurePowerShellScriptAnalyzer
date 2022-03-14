@@ -1,0 +1,2 @@
+
+Get-AzSynapseSqlAdvancedDataSecurityPolicy -WorkspaceName ContosoWorkspace

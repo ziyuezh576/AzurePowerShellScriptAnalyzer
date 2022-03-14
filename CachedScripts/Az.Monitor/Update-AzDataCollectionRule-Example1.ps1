@@ -1,0 +1,2 @@
+
+Update-AzDataCollectionRule -RuleName 'newDcr'

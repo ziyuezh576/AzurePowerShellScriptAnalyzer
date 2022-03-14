@@ -1,0 +1,2 @@
+
+Get-AzSynapseManagedPrivateEndpoint -WorkspaceName ContosoWorkspace

@@ -1,0 +1,2 @@
+
+Get-AzCloudService -ResourceGroupName "ContosOrg"

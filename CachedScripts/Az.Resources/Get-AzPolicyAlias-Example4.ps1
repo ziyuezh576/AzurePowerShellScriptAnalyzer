@@ -1,0 +1,2 @@
+
+Get-AzPolicyAlias -ResourceTypeMatch 'virtual'

@@ -1,0 +1,2 @@
+
+Get-AzDataLakeStoreFirewallRule -AccountName "ContosoADL"

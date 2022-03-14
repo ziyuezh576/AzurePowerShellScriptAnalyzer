@@ -1,0 +1,2 @@
+
+Get-AzExpressRouteCrossConnection -Name test*

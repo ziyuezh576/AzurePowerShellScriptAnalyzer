@@ -1,0 +1,2 @@
+
+Remove-AzADServicePrincipal -DisplayName $name

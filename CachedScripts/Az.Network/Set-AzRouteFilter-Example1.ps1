@@ -1,0 +1,2 @@
+
+Set-AzRouteFilter -RouteFilter $rf

@@ -1,0 +1,2 @@
+
+Get-AzPolicyState -ManagementGroupName "myManagementGroup"

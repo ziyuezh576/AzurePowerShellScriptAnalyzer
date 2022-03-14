@@ -1,0 +1,2 @@
+
+Remove-AzScheduledQueryRule -InputObject $PSScheduledQueryRuleResource

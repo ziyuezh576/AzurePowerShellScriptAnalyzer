@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnSecurityPolicy -ResourceId $securityPolicyResourceId

@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnSecret -ResourceId $secretResourceId

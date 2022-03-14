@@ -1,0 +1,2 @@
+
+Get-AzContainerRegistry -ResourceGroupName "MyResourceGroup"

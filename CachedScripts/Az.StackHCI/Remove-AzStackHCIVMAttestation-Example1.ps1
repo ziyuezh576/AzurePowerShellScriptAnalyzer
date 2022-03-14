@@ -1,0 +1,2 @@
+
+Remove-AzStackHCIVMAttestation -RemoveAll

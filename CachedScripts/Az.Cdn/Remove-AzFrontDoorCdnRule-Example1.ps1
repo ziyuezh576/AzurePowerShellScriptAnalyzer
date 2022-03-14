@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnRule -ResourceId $ruleResourceId

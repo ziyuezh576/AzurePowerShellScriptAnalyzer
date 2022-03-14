@@ -1,0 +1,2 @@
+
+Remove-AzManagedCassandraDataCenter -ResourceId {dataCenterResourceId}
