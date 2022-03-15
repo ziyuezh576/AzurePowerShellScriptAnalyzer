@@ -1,5 +1,11 @@
 # Import-Module AzPreview
 # Import-Module AzureRM
+
+$UNRECOGNIZED_CMDLET_NAME = "Unrecognized_Cmdlet_Name"
+$ALIAS_DETECTED = "Alias_Detected"
+$UNRECOGNIZED_PARAMETER_NAME = "Unrecognized_Parameter_Name"
+$MISMATCH_VALUE_FOR_PARAMETER = "Mismatch_Value_For_Parameter" 
+
 function Get-ActualVariableValue {
     param([System.Management.Automation.Language.Ast]$CommandElementAst)
 
@@ -23,7 +29,10 @@ function Get-ActualVariableValue {
     return $CommandElementAst
 }
 
-function Measure-AliasAndWrongCommandName {
+<#
+Detect alias or unrecognized cmdlet
+#>
+function Measure-CommandName {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -85,11 +94,11 @@ function Measure-AliasAndWrongCommandName {
             for ($i = 0; $i -lt $Asts.Count; $i++) {
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<is not valid>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" is not a valid command name."
-                    $RuleName = "Invalid Cmdlet"
+                    $RuleName = $UNRECOGNIZED_CMDLET_NAME
                 }
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<is an alias>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" is an alias of `"$((Get-Alias $CommandParameterPair[$i].CommandName)[0].ResolvedCommandName)`"."
-                    $RuleName = "Alias"
+                    $RuleName = $ALIAS_DETECTED
                 }
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<doesn't follow the Capitalization Conventions>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" doesn't follow the Capitalization Conventions."
@@ -511,7 +520,7 @@ function Measure-WrongParameterNameAndValue {
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" is not a valid parameter name."
-                    $RuleName = "Invalid ParameterName"
+                    $RuleName = $UNRECOGNIZED_PARAMETER_NAME
                     $Severity = "Error"
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "<2>") {

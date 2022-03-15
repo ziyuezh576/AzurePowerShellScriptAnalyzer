@@ -47,7 +47,7 @@ function Extract-ScriptFromMarkdown {
             Write-Debug "Creating $scriptPath ..."
             $null = New-Item -ItemType Directory -Force -Path $scriptPath
         }
-        
+
         Write-Debug "Extracting scripts from $markdown ..."
         
         $exampleCount= 0

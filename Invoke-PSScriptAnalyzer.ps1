@@ -53,7 +53,14 @@ if((Get-Item $RulePath) -is [System.IO.DirectoryInfo]){
     $rules = $RulePath
 }
 
-$resultsTable = @()
+# Create output file
+if((Get-Item $DestPath) -is [System.IO.DirectoryInfo]){
+    $null = New-Item -ItemType Directory -Force -Path $DestPath
+    $null = New-Item -ItemType File -Force -Path $DestPath -Name "result.csv"
+}else
+{
+    $null = New-Item -ItemType File -Force -Path $DestPath
+}
 
 # Analyze scripts
 foreach($script in $scripts)
@@ -62,13 +69,9 @@ foreach($script in $scripts)
     $diagnosticRecords = Invoke-ScriptAnalyzer -Path $script -CustomRulePath $rules # -IncludeDefaultRules
 
     if(![System.String]::IsNullOrEmpty($diagnosticRecords)){
-        $resultsTable += Filter-Result $diagnosticRecords
+        Filter-Result $diagnosticRecords | Export-Csv "$DestPath\result.csv" -Force -Encoding UTF8 -Append
     }
 }
-
-$null = New-Item -ItemType Directory -Force -Path $DestPath
-$null = New-Item -ItemType File -Force -Path $DestPath -Name "result.csv"
-$ResultsTable | Export-Csv "$DestPath\result.csv" -Force -Encoding UTF8 
 
 # Clean caches
 if($CleanCache.IsPresent){
