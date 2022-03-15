@@ -372,6 +372,12 @@ function Detect-IncompleteSection{
 
 }
 
+class DiagnosticResult{
+    [string] $CmdletName
+    [string] $ViolationCategory
+    [string] $Message
+}
+
 
 function Filter-Result{
     param (
@@ -383,8 +389,11 @@ function Filter-Result{
 
     foreach($record in $DiagnosticRecords) {
         if(![System.String]::IsNullOrEmpty($record)){
-            $record = $record | Select-Object -Property @{Name = 'Cmdlet'; Expression = {$record.ScriptName.Split("-Example")[0]}}, RuleName, Message
-            $results += $record
+            $result = [DiagnosticResult]::new()
+            $result.CmdletName = $record.ScriptName.Split("-Example")[0]
+            $result.ViolationCategory = $record.RuleName
+            $result.Message = $record.Message
+            $results += $result
         }
     }
 

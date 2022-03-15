@@ -62,6 +62,8 @@ if((Get-Item $DestPath) -is [System.IO.DirectoryInfo]){
     $null = New-Item -ItemType File -Force -Path $DestPath
 }
 
+$resultsTable = @()
+
 # Analyze scripts
 foreach($script in $scripts)
 {
@@ -69,7 +71,9 @@ foreach($script in $scripts)
     $diagnosticRecords = Invoke-ScriptAnalyzer -Path $script -CustomRulePath $rules # -IncludeDefaultRules
 
     if(![System.String]::IsNullOrEmpty($diagnosticRecords)){
-        Filter-Result $diagnosticRecords | Export-Csv "$DestPath\result.csv" -Force -Encoding UTF8 -Append
+        $result = Filter-Result $diagnosticRecords 
+        $resultsTable += $result
+        $result | Export-Csv "$DestPath\result.csv" -Force -Encoding UTF8 -Append
     }
 }
 
@@ -80,5 +84,7 @@ if($CleanCache.IsPresent){
 }
 
 Write-Debug "Finished Analysis"
+
+# $resultsTable | Group-Object -Property ViolationCategory -NoElement | Sort-Object -Property Count -Descending | ft -AutoSize
 
 return  $resultsTable
