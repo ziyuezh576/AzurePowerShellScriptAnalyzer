@@ -1,0 +1,5 @@
+"Cmdlet","RuleName","Message"
+"Connect-AzAccount","Unassigned Variable","""Connect-AzAccount -TenantId $TenantId is a null-valued parameter value."""
+"Connect-AzAccount","Incorrect ParameterType","""Connect-AzAccount -Credential $Credential"" is not an expected parameter type."
+"Connect-AzAccount","Incorrect ParameterType","""Update-AzVM -IdentityId $identity.Id"" is not an expected parameter type."
+"Connect-AzAccount","Incorrect ParameterType","""Connect-AzAccount -AccountId $identity.ClientId"" is not an expected parameter type."

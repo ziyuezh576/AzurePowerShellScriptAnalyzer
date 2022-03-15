@@ -373,7 +373,7 @@ function Detect-IncompleteSection{
 }
 
 
-function Write-Result{
+function Filter-Result{
     param (
         [Parameter(Mandatory=$true)]
         [object]$DiagnosticRecords
@@ -384,7 +384,6 @@ function Write-Result{
     foreach($record in $DiagnosticRecords) {
         if(![System.String]::IsNullOrEmpty($record)){
             $record = $record | Select-Object -Property @{Name = 'Cmdlet'; Expression = {$record.ScriptName.Split("-Example")[0]}}, RuleName, Message
-            Write-Host $record
             $results += $record
         }
     }

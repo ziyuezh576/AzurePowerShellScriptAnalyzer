@@ -59,14 +59,16 @@ $resultsTable = @()
 foreach($script in $scripts)
 {
     Write-Debug "Analyzing $script"
-    $diagnosticRecords = Invoke-ScriptAnalyzer -Path $script -CustomRulePath $rules -IncludeDefaultRules
+    $diagnosticRecords = Invoke-ScriptAnalyzer -Path $script -CustomRulePath $rules # -IncludeDefaultRules
 
     if(![System.String]::IsNullOrEmpty($diagnosticRecords)){
-        $resultsTable += Write-Result $diagnosticRecords
+        $resultsTable += Filter-Result $diagnosticRecords
     }
 }
 
-return  $resultsTable
+$null = New-Item -ItemType Directory -Force -Path $DestPath
+$null = New-Item -ItemType File -Force -Path $DestPath -Name "result.csv"
+$ResultsTable | Export-Csv "$DestPath\result.csv" -Force -Encoding UTF8 
 
 # Clean caches
 if($CleanCache.IsPresent){
@@ -75,3 +77,5 @@ if($CleanCache.IsPresent){
 }
 
 Write-Debug "Finished Analysis"
+
+return  $resultsTable
