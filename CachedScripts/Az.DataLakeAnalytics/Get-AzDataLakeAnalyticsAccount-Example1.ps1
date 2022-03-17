@@ -1,0 +1,2 @@
+
+Get-AzDataLakeAnalyticsAccount -Name "ContosoAdlAccount"

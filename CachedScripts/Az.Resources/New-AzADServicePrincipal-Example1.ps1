@@ -1,0 +1,2 @@
+
+New-AzADServicePrincipal

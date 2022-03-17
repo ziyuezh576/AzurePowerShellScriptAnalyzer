@@ -1,0 +1,2 @@
+
+Connect-AzAccount -Identity

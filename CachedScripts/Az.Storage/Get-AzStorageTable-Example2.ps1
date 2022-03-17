@@ -1,0 +1,2 @@
+
+Get-AzStorageTable -Name table*

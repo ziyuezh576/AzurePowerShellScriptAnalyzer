@@ -1,0 +1,2 @@
+
+Get-AzADGroupMember -GroupDisplayName $name

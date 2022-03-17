@@ -1,0 +1,2 @@
+
+New-AzSqlDatabaseImport -AdministratorLogin 'User' -AdministratorLoginPassword <SecureString> -AuthenticationType None -DatabaseMaxSizeBytes 5000000 -DatabaseName 'Database01' -Edition None -ResourceGroupName 'RG01' -ServerName 'Server01' -ServiceObjectiveName S0 -StorageKey 'StorageKey01' -StorageKeyType StorageAccessKey -StorageUri 'https://account01.blob.core.contoso.net/bacpacs/database01.bacpac'

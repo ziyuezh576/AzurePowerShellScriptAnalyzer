@@ -1,0 +1,2 @@
+
+Get-AzSecurityAutoProvisioningSetting -Name "default"

@@ -1,0 +1,2 @@
+
+Get-AzSynapsePipeline -WorkspaceName ContosoWorkspace

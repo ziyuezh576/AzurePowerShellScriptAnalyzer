@@ -1,0 +1,2 @@
+
+Set-AzFrontDoorCdnProfile -Profile $profileObject

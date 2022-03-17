@@ -1,0 +1,2 @@
+
+Get-AzConnectedNetworkDeviceRegistrationKey -DeviceName myMecDevice -ResourceGroupName myResources

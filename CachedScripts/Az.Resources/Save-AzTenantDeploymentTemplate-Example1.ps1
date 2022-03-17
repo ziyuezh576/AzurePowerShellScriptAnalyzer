@@ -1,0 +1,2 @@
+
+Save-AzTenantDeploymentTemplate -DeploymentName "TestDeployment"

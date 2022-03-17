@@ -1,0 +1,2 @@
+
+$Zones = Get-AzDnsZone

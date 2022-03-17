@@ -1,0 +1,2 @@
+
+Get-AzConsumptionPriceSheet -ExpandMeterDetail

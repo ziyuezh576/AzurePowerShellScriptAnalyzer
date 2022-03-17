@@ -1,0 +1,2 @@
+
+Disable-AzSynapseSqlAdvancedDataSecurity -WorkspaceName ContosoWorkspace

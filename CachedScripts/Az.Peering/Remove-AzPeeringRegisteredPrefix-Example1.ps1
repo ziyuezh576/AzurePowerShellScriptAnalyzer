@@ -1,0 +1,2 @@
+
+Remove-AzPeeringRegisteredPrefix -ResourceId $resourceId

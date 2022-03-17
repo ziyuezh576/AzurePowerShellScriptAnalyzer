@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnProfile -ResourceId $profileResourceId

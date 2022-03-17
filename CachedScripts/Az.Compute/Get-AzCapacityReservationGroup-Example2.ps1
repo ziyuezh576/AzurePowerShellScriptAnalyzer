@@ -1,0 +1,2 @@
+
+Get-AzCapacityReservationGroup -ResourceGroupName $rgname

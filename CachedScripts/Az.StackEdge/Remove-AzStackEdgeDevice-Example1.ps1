@@ -1,0 +1,2 @@
+
+Remove-AzStackEdgeDevice ResourceGroupName resourceGroupName -Name deviceName

@@ -1,0 +1,2 @@
+
+Get-AzExpressRouteCircuit -Name test*

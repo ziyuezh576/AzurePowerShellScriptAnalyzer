@@ -1,0 +1,2 @@
+
+Get-AzPeeringCdnPeeringPrefix -PeeringLocation "Seattle"

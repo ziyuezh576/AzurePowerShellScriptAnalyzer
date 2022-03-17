@@ -1,0 +1,2 @@
+
+Test-AzSignalR unexistedsignalr eastus

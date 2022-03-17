@@ -1,0 +1,2 @@
+
+Get-AzCognitiveServicesAccountType -Location westus

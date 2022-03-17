@@ -1,0 +1,2 @@
+
+Get-AzDdosProtectionPlan -ResourceGroupName ResourceGroupName

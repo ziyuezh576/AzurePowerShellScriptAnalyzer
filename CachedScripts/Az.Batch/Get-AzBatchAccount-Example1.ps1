@@ -1,0 +1,2 @@
+
+Get-AzBatchAccount -AccountName "pfuller"

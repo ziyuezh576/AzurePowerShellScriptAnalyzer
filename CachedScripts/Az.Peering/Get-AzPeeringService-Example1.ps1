@@ -1,0 +1,2 @@
+
+Get-AzPeeringService -ResourceGroupName $rgName

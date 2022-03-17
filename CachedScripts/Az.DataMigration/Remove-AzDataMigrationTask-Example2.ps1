@@ -1,0 +1,2 @@
+
+Remove-AzDataMigrationTask -InputObject $TestTask

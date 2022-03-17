@@ -1,0 +1,2 @@
+
+Remove-AzDataMigrationProject -InputObject $myDMSProject

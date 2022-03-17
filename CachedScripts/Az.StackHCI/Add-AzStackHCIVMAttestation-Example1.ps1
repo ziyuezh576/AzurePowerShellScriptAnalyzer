@@ -1,0 +1,2 @@
+
+Add-AzStackHCIVMAttestation -AddAll

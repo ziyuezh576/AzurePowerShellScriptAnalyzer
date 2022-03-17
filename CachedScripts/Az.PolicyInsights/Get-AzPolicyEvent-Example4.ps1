@@ -1,0 +1,2 @@
+
+Get-AzPolicyEvent -ResourceGroupName "myResourceGroup"

@@ -1,0 +1,4 @@
+
+$securityPartnerProvider = Get-AzSecurityPartnerProvider -ResourceGroupName securityPartnerProviderRG -Name securityPartnerProvider
+
+Set-AzSecurityPartnerProvider -SecurityPartnerProvider $securityPartnerProvider

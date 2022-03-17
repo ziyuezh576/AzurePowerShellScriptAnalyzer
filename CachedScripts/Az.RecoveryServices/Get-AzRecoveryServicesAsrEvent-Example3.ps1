@@ -1,0 +1,2 @@
+
+Get-AzRecoveryServicesAsrEvent -AffectedObjectName xxxxxxxxxxxxx

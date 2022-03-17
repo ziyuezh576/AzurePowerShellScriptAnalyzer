@@ -1,0 +1,2 @@
+
+Remove-AzSynapseWorkspacePackage -WorkspaceName ContosoWorkspace -Name ContosoPackageName

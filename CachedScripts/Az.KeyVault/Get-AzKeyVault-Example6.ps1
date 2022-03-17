@@ -1,0 +1,2 @@
+
+Get-AzKeyVault -VaultName 'myvault*'

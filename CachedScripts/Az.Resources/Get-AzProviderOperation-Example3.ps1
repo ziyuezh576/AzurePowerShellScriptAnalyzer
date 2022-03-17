@@ -1,0 +1,2 @@
+
+Get-AzProviderOperation */virtualMachines/*

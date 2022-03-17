@@ -1,0 +1,2 @@
+
+Remove-AzEventHubNamespace -ResourceGroupName MyResourceGroupName -Name MyNamespaceName

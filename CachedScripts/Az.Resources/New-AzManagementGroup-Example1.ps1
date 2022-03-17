@@ -1,0 +1,2 @@
+
+New-AzManagementGroup -GroupName "TestGroup"

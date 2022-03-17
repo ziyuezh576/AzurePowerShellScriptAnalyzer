@@ -1,0 +1,2 @@
+
+Get-AzBillingInvoice -Latest

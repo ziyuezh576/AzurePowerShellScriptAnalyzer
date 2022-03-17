@@ -1,0 +1,2 @@
+
+Get-AzHealthBot -ResourceGroupName youriTest

@@ -1,0 +1,2 @@
+
+Get-AzManagementGroupDeployment -ManagementGroupId "myMG"

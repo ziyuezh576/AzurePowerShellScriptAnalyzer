@@ -1,0 +1,2 @@
+
+Get-AzDataFactory -ResourceGroupName "ADF"

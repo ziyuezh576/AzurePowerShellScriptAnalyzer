@@ -1,0 +1,2 @@
+
+New-AzSynapseKustoPoolAttachedDatabaseConfiguration -ResourceGroupName testrg -WorkspaceName testws -KustoPoolName testfollowerkustopool -Name followerconfiguration -KustoPoolResourceId /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Synapse/workspaces/testws/kustoPools/testkustopool -DatabaseName testdatabase -DefaultPrincipalsModificationKind Union -Location eastus2

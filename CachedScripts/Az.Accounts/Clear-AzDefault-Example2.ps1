@@ -1,0 +1,2 @@
+
+Clear-AzDefault -ResourceGroup

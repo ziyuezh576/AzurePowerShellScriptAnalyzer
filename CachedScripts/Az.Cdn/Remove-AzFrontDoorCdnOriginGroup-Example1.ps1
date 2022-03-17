@@ -1,0 +1,2 @@
+
+Remove-AzFrontDoorCdnOriginGroup -ResourceId $originGroupResourceId

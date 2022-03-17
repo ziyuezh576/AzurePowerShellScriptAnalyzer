@@ -1,0 +1,2 @@
+
+Test-AzVMwareLocationTrialAvailability -Location westcentralus

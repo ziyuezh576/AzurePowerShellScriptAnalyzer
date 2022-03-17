@@ -1,0 +1,2 @@
+
+Get-AzManagementGroupDeploymentOperation -ManagementGroupId myMG -DeploymentName Deploy01

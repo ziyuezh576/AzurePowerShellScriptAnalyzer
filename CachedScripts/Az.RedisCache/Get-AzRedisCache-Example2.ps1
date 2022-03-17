@@ -1,0 +1,2 @@
+
+Get-AzRedisCache -ResourceGroupName "myGroup"

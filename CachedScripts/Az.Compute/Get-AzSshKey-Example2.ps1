@@ -1,0 +1,2 @@
+
+Get-AzSshKey -ResourceGroupName "testRG"

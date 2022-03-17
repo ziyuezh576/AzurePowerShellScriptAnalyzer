@@ -1,0 +1,2 @@
+
+Get-AzDataFactoryV2DataFlowDebugSession -ResourceGroupName adf -DataFactoryName WikiADF

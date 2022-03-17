@@ -1,0 +1,2 @@
+
+Get-AzAksVersion -location eastus

@@ -1,0 +1,2 @@
+
+Set-AzFrontDoorCdnOriginGroup -OriginGroup $originGroupObject

@@ -1,0 +1,2 @@
+
+Remove-AzDeploymentManagerRollout -InputObject $rolloutObject

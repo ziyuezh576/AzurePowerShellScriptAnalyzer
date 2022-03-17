@@ -1,0 +1,2 @@
+
+Get-AzVM -Location "westus"

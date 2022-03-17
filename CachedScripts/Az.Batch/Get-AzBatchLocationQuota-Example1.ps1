@@ -1,0 +1,2 @@
+
+Get-AzBatchLocationQuota -Location "westus"

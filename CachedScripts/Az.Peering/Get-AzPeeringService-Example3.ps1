@@ -1,0 +1,2 @@
+
+Get-AzPeeringService -ResourceId $rid

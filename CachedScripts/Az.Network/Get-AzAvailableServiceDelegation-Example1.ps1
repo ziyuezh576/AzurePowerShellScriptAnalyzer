@@ -1,0 +1,2 @@
+
+Get-AzAvailableServiceDelegation -Location "westus"

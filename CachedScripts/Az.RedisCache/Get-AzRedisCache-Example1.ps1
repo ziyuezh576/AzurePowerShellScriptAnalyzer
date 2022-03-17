@@ -1,0 +1,2 @@
+
+Get-AzRedisCache -Name "myexists"

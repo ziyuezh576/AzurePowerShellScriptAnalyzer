@@ -1,0 +1,2 @@
+
+$fabrics = Get-AzRecoveryServicesAsrFabric

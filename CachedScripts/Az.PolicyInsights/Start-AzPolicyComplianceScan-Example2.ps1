@@ -1,0 +1,2 @@
+
+Start-AzPolicyComplianceScan -ResourceGroupName "myRG"

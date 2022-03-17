@@ -1,0 +1,2 @@
+
+Remove-AzBatchAccount -AccountName "pfuller"

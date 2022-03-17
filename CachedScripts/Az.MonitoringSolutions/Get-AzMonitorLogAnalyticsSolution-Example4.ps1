@@ -1,0 +1,2 @@
+
+Get-AzMonitorLogAnalyticsSolution -ResourceGroupName azureps-monitor

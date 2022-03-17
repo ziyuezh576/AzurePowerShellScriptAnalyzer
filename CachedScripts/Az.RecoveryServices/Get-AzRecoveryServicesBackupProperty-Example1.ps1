@@ -1,0 +1,2 @@
+
+Get-AzRecoveryServicesBackupProperty -Vault $vault

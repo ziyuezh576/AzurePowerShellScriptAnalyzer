@@ -1,0 +1,2 @@
+
+Get-AzExpressRoutePort -ResourceId $id

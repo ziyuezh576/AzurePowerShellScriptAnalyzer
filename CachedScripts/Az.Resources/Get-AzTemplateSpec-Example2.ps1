@@ -1,0 +1,2 @@
+
+Get-AzTemplateSpec -ResourceGroupName 'myRG'

@@ -1,0 +1,2 @@
+
+Get-AzRedisCacheFirewallRule -Name "mycache"

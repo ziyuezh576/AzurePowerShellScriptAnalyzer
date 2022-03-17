@@ -1,0 +1,2 @@
+
+Get-AzFrontDoor | Remove-AzFrontDoor

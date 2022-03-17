@@ -1,0 +1,2 @@
+
+Get-AzConnectedNetworkVendor -Name myVendor

@@ -1,0 +1,2 @@
+
+Get-AzMetricAlertRuleV2 -ResourceGroupName metricAlertsRG

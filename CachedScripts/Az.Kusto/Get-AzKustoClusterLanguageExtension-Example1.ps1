@@ -1,0 +1,2 @@
+
+Get-AzKustoClusterLanguageExtension -ResourceGroupName testrg -ClusterName testnewkustocluster

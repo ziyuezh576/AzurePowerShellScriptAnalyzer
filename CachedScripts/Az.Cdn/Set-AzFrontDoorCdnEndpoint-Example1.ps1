@@ -1,0 +1,2 @@
+
+Set-AzFrontDoorCdnEndpoint -Endpoint $endpointObject

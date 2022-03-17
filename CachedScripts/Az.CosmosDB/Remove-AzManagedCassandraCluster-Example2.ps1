@@ -1,0 +1,2 @@
+
+Remove-AzManagedCassandraCluster -ResourceId {clusterResourceId}

@@ -1,0 +1,4 @@
+
+$parameters = @{
+
+New-AzExpressRouteCircuit @parameters

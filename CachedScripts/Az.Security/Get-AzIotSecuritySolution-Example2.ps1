@@ -1,0 +1,2 @@
+
+Get-AzIotSecuritySolution -ResourceGroupName "MyResourceGroup"

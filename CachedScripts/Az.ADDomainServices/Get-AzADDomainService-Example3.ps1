@@ -1,0 +1,2 @@
+
+Get-AzADDomainService -ResourceGroupName youriADdomain

@@ -1,0 +1,2 @@
+
+Remove-AzADGroup -DisplayName $name

@@ -1,0 +1,2 @@
+
+Remove-AzStorageCORSRule -ServiceType Blob

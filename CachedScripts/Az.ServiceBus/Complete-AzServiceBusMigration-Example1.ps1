@@ -1,0 +1,2 @@
+
+Complete-AzServiceBusMigration -ResourceGroupName ResourceGroup -Name NamespaceStandardMigration

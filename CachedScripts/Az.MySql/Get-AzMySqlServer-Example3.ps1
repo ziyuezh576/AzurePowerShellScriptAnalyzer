@@ -1,0 +1,2 @@
+
+Get-AzMySqlServer -ResourceGroupName PowershellMySqlTest

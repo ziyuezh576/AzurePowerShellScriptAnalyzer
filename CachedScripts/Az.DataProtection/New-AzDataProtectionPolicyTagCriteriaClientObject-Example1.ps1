@@ -1,0 +1,2 @@
+
+New-AzDataProtectionPolicyTagCriteriaClientObject -AbsoluteCriteria FirstOfDay

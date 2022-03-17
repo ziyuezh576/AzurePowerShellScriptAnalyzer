@@ -1,0 +1,2 @@
+
+Get-AzDeploymentManagerRollout -InputObject $rolloutObject

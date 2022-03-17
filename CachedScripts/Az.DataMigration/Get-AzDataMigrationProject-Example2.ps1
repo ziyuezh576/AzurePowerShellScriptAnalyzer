@@ -1,0 +1,2 @@
+
+Get-AzDataMigrationProject -InputObject $myService

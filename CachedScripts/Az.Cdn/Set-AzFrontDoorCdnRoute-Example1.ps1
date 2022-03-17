@@ -1,0 +1,2 @@
+
+Set-AzFrontDoorCdnRoute -Route $routeObject

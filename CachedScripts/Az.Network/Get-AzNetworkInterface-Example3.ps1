@@ -1,0 +1,2 @@
+
+Get-AzNetworkInterface -Name test*

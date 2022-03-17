@@ -1,0 +1,2 @@
+
+Test-AzServiceBusName -Namespace MyNameSpaceName

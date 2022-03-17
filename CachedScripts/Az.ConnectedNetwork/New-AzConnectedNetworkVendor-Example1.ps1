@@ -1,0 +1,2 @@
+
+New-AzConnectedNetworkVendor -Name myVendor

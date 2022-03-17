@@ -1,0 +1,2 @@
+
+Get-AzDataLakeAnalyticsComputePolicy -AccountName "contosoadla"

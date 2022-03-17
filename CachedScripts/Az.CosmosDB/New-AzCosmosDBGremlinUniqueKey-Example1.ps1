@@ -1,0 +1,2 @@
+
+New-AzCosmosDBGremlinUniqueKey -Path "abc"

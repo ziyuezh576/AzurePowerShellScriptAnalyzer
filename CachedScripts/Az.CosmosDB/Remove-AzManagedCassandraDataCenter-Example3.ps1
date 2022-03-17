@@ -1,0 +1,2 @@
+
+$dataCenterResource | Remove-AzManagedCassandraDataCenter

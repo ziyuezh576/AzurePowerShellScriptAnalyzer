@@ -1,0 +1,2 @@
+
+Get-AzContainerInstanceUsage -Location eastus

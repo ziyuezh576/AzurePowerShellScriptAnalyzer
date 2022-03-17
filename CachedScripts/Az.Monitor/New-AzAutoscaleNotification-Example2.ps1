@@ -1,0 +1,2 @@
+
+New-AzAutoscaleNotification -SendEmailToSubscriptionAdministrator

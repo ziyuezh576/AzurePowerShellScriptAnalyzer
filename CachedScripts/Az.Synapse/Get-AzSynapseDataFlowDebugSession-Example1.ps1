@@ -1,0 +1,2 @@
+
+Get-AzSynapseDataFlowDebugSession -WorkspaceName ContosoWorkspace

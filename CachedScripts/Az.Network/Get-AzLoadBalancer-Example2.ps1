@@ -1,0 +1,2 @@
+
+Get-AzLoadBalancer -Name MyLoadBalancer*

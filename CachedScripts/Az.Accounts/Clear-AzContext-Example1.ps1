@@ -1,0 +1,2 @@
+
+Clear-AzContext -Scope CurrentUser

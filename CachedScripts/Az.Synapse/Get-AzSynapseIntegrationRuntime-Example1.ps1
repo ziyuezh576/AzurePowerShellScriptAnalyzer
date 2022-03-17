@@ -1,0 +1,2 @@
+
+Get-AzSynapseIntegrationRuntime -WorkspaceName ContosoWorkspace

@@ -1,0 +1,2 @@
+
+Remove-AzDataLakeStoreAccount -Name "ContosoADL"

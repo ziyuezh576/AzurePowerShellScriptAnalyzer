@@ -1,0 +1,2 @@
+
+Get-AzStreamAnalyticsQuota -Location 'WestCentralUS'
