@@ -1,4 +1,4 @@
-Get-ChildItem -Directory newps | foreach {
+Get-ChildItem -Directory .\ScriptsByExample | foreach {
     $Module = $_.Name
     $ResultsTable = @()
     Get-ChildItem $_\*.ps1 | foreach {
@@ -8,14 +8,15 @@ Get-ChildItem -Directory newps | foreach {
         $Results = $Results | Select-Object -Property @{Name='Module';Expression={$Module}}, *
         $ResultsTable += $Results
     }
-    $ResultsTable | Export-Csv newps\$Module.csv -NoTypeInformation
+    $ResultsTable | Export-Csv .\ScriptsByExample\$Module.csv -NoTypeInformation
 }
 $Results = @()
-dir newps -Filter *.csv | foreach {$Results += Import-Csv -Path $_.FullName}
-$Results | Export-Csv PSSA3.csv -NoTypeInformation
+dir .\ScriptsByExample -Filter *.csv | foreach {$Results += Import-Csv -Path $_.FullName}
+$Results | Export-Csv PSSA.csv -NoTypeInformation
+
 
 $ResultsTable = @()
-Get-ChildItem -Directory newps-1 | foreach {
+Get-ChildItem -Directory .\ScriptsByExample | foreach {
     $Module = $_.Name
     Get-ChildItem $_\*.ps1 | foreach {
         $LastIndexOfDash = $_.BaseName.LastIndexOf("-")
@@ -34,4 +35,4 @@ Get-ChildItem -Directory newps-1 | foreach {
         }
     }
 }
-$ResultsTable | Export-Csv newps-1\newps-1.csv -NoTypeInformation
+$ResultsTable | Export-Csv .\AnalysisResultsTable.csv -NoTypeInformation

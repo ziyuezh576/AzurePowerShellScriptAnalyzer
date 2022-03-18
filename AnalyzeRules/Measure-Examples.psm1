@@ -1,22 +1,46 @@
+# Import-Module AzPreview
+# Import-Module AzureRM
 
-$UNRECOGNIZED_CMDLET_NAME = "Unrecognized_Cmdlet_Name"
-$ALIAS_DETECTED = "Alias_Detected"
-$CAPITALIZATION_CONVENTION_VIOLATION = "Capitalization_Convention_Violation"
+enum RuleNames {
+    Invalid_Cmdlet
+    Is_Alias
+    Capitalization_Conventions
+    Unknown_ParameterSet
+    Invalid_ParameterName
+    Duplicate_ParameterName
+    Unassigned_Parameter
+    Unassigned_Variable
+    Unknown_ParameterName
+    Incorrect_ParameterType
+}
 
-$UNKNOWN_PARAMETER_SET = "Unknown_Parameter_Set"
-$UNRECOGNIZED_PARAMETER_NAME = "Unrecognized_Parameter_Name"
-$DUPLICATE_PARAMETER_NAME = "Duplicate_Parameter_Name"
+function Get-ActualVariableValue {
+    param([System.Management.Automation.Language.Ast]$CommandElementAst)
 
-$UNASSIGNED_VARIABLE = "Unassigned_Variable"
-$MISSING_VALUE_FOR_PARAMETER = "Missing_Value_For_Parameter"
-$POSITIONAL_PARAMETER_BINDING_FAILED = "Positional_Parameter_Binding_Failed"
-
-$MISMATCH_VALUE_TYPE_FOR_PARAMETER = "Mismatch_Value_TYPE_For_Parameter" 
+    while ($true) {
+        if ($CommandElementAst.Expression -ne $null) {
+            $CommandElementAst = $CommandElementAst.Expression
+        }
+        elseif ($CommandElementAst.Target -ne $null) {
+            $CommandElementAst = $CommandElementAst.Target
+        }
+        elseif ($CommandElementAst.Pipeline -ne $null) {
+            $CommandElementAst = $CommandElementAst.Pipeline
+        }
+        elseif ($CommandElementAst.PipelineElements -ne $null) {
+            $CommandElementAst = $CommandElementAst.PipelineElements[-1]
+        }
+        else {
+            break
+        }
+    }
+    return $CommandElementAst
+}
 
 <#
 Detect alias or unrecognized cmdlet
 #>
-function Measure-CommandName {
+function Measure-AliasAndWrongCommandName {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -78,24 +102,22 @@ function Measure-CommandName {
             for ($i = 0; $i -lt $Asts.Count; $i++) {
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<is not valid>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" is not a valid command name."
-                    $RuleName = $UNRECOGNIZED_CMDLET_NAME
+                    $RuleName = [RuleNames]::Invalid_Cmdlet
                 }
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<is an alias>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" is an alias of `"$((Get-Alias $CommandParameterPair[$i].CommandName)[0].ResolvedCommandName)`"."
-                    $RuleName = $ALIAS_DETECTED
+                    $RuleName = [RuleNames]::Is_Alias
                 }
                 if ($global:CommandParameterPair[$i].ParameterName -eq "<doesn't follow the Capitalization Conventions>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" doesn't follow the Capitalization Conventions."
-                    $RuleName = $CAPITALIZATION_CONVENTION_VIOLATION
+                    $RuleName = [RuleNames]::Capitalization_Conventions
                 }
-
                 $Result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
                     Message = $Message;
                     Extent = $Asts[$i].Extent;
                     RuleName = $RuleName;
                     Severity = "Error"
                 }
-
                 $Results += $Result
             }
             return $Results
@@ -115,6 +137,9 @@ function Measure-CommandName {
     end {}
 }
 
+<#
+Detect parameter and expression error
+#>
 function Measure-WrongParameterNameAndValue {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
@@ -501,38 +526,38 @@ function Measure-WrongParameterNameAndValue {
             for ($i = 0; $i -lt $Asts.Count; $i++) {
                 if ($global:CommandParameterPair[$i].ParameterName -eq "" -and $global:CommandParameterPair[$i].ExpressionToParameter -eq "") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName)`" has a parameter not in the same ParameterSet as others."
-                    $RuleName = $UNKNOWN_PARAMETER_SET
+                    $RuleName = [RuleNames]::Unknown_ParameterSet
                     $Severity = "Error"
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" is not a valid parameter name."
-                    $RuleName = $UNRECOGNIZED_PARAMETER_NAME
+                    $RuleName = [RuleNames]::Invalid_ParameterName
                     $Severity = "Error"
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "<2>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" appeared more than once."
-                    $RuleName = $DUPLICATE_PARAMETER_NAME
+                    $RuleName = [RuleNames]::Duplicate_ParameterName
                     $Severity = "Error"
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq $null) {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" must be assigned with a value."
-                    $RuleName = $MISSING_VALUE_FOR_PARAMETER
+                    $RuleName = [RuleNames]::Unassigned_Parameter
                     $Severity = "Error"
                 }
                 elseif ($global:CommandParameterPair[$i].ExpressionToParameter.EndsWith(" is a null-valued parameter value.")) {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ParameterName) $($CommandParameterPair[$i].ExpressionToParameter)`""
-                    $RuleName = $UNASSIGNED_VARIABLE
+                    $RuleName = [RuleNames]::Unassigned_Variable
                     $Severity = "Warning"
                 }
                 elseif ($global:CommandParameterPair[$i].ParameterName -eq "<non-existant>") {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ExpressionToParameter)`" is not explicitly assigned to a parameter."
-                    $RuleName = $POSITIONAL_PARAMETER_BINDING_FAILED 
-                    $Severity = "Error"
+                    $RuleName = [RuleNames]::Unknown_ParameterName
+                    $Severity = "Warning"
                 }
                 else {
                     $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ParameterName) $($CommandParameterPair[$i].ExpressionToParameter)`" is not an expected parameter type."
-                    $RuleName = $MISMATCH_VALUE_TYPE_FOR_PARAMETER 
-                    $Severity = "Error"
+                    $RuleName = [RuleNames]::Incorrect_ParameterType
+                    $Severity = "Warning"
                 }
                 $Result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
                     Message = $Message;
@@ -557,29 +582,6 @@ function Measure-WrongParameterNameAndValue {
     }
 
     end {}
-}
-
-function Get-ActualVariableValue {
-    param([System.Management.Automation.Language.Ast]$CommandElementAst)
-
-    while ($true) {
-        if ($CommandElementAst.Expression -ne $null) {
-            $CommandElementAst = $CommandElementAst.Expression
-        }
-        elseif ($CommandElementAst.Target -ne $null) {
-            $CommandElementAst = $CommandElementAst.Target
-        }
-        elseif ($CommandElementAst.Pipeline -ne $null) {
-            $CommandElementAst = $CommandElementAst.Pipeline
-        }
-        elseif ($CommandElementAst.PipelineElements -ne $null) {
-            $CommandElementAst = $CommandElementAst.PipelineElements[-1]
-        }
-        else {
-            break
-        }
-    }
-    return $CommandElementAst
 }
 
 Export-ModuleMember -Function Measure-*
