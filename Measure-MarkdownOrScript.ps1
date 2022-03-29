@@ -17,9 +17,8 @@ param (
     [switch]$AnalyzeScriptsInFile,
     [Parameter(ParameterSetName = "Markdown")]
     [switch]$OutputScriptsInFile,
-    [Parameter(ParameterSetName = "Markdown")]
-    [switch]$CleanCache,
-    [switch]$OutputResultsByModule
+    [switch]$OutputResultsByModule,
+    [switch]$CleanScripts
 )
 
 . $PSScriptRoot\utils.ps1
@@ -54,6 +53,10 @@ if ($PSCmdlet.ParameterSetName -eq "Markdown") {
     if ($AnalyzeScriptsInFile.IsPresent) {
         $ScriptPaths = "$OutputPath\$ScriptsByExamplePath"
     }
+    # Summarize analysis results
+    $scaleTable | Export-Csv "$OutputPath\Scale.csv" -NoTypeInformation
+    $missingTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Missing.csv" -NoTypeInformation
+    $deletePromptAndSeparateOutputTable | where {$_ -ne $null} | Export-Csv "$OutputPath\DeletingSeparating.csv" -NoTypeInformation
 }
 if ($PSCmdlet.ParameterSetName -eq "Script" -or $AnalyzeScriptsInFile.IsPresent) {
     # Analyze codes
@@ -66,20 +69,16 @@ if ($PSCmdlet.ParameterSetName -eq "Script" -or $AnalyzeScriptsInFile.IsPresent)
             Write-Output "Analyzing file $($_.Name) ..."
             $analysisResults += Get-ScriptAnalyzerResult $module $_.FullName $RulePaths -IncludeDefaultRules:$IncludeDefaultRules.IsPresent -ErrorAction Continue
         }
-        if ($OutputResultsByModule.IsPresent) {
-            $analysisResults | where {$_ -ne $null} | Export-Csv "$OutputPath\$module.csv" -NoTypeInformation
+        if ($OutputResultsByModule.IsPresent -and $analysisResults.Count -ne 0) {
+            $analysisResults | Export-Csv "$OutputPath\$module.csv" -NoTypeInformation
         }
         $analysisResultsTable += $analysisResults
     }
+    # Summarize analysis results
+    $analysisResultsTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Results-$(Get-Date -UFormat %s).csv" -NoTypeInformation
 }
 
 # Clean caches
-if ($PSCmdlet.ParameterSetName -eq "Markdown" -and $CleanCache.IsPresent) {
+if ($CleanScripts.IsPresent) {
     Remove-Item $ScriptPaths -Exclude *.csv -Recurse -ErrorAction Continue
 }
-
-# Summarize analysis results
-$scaleTable | Export-Csv "$OutputPath\Scale.csv" -NoTypeInformation
-$missingTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Missing.csv" -NoTypeInformation
-$deletePromptAndSeparateOutputTable | where {$_ -ne $null} | Export-Csv "$OutputPath\DeletingSeparating.csv" -NoTypeInformation
-$analysisResultsTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Results-$(Get-Date -UFormat %s).csv" -NoTypeInformation
