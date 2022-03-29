@@ -1,12 +1,12 @@
-$headingOfSynopsis = "## SYNOPSIS"
-$headingOfSyntax = "## SYNTAX"
-$headingOfDescription = "## DESCRIPTION"
-$headingOfExamples = "## EXAMPLES"
-$headingOfParameters = "## PARAMETERS"
-$headingOfExampleRegex = "\n###\s*"
-$headingOfExampleTitleRegex = "$headingOfExampleRegex.+"
-$codeBlockRegex = "``````powershell(.*\n)+? *``````"
-$outputBlockRegex = "``````output(.*\n)+? *``````"
+$SYNOPSIS_HEADING = "## SYNOPSIS"
+$SYNTAX_HEADING = "## SYNTAX"
+$DESCRIPTION_HEADING = "## DESCRIPTION"
+$EXAMPLES_HEADING = "## EXAMPLES"
+$PARAMETERS_HEADING = "## PARAMETERS"
+$SINGLE_EXAMPLE_HEADING_REGEX = "\n###\s*"
+$SINGLE_EXAMPLE_TITLE_HEADING_REGEX = "$SINGLE_EXAMPLE_HEADING_REGEX.+"
+$CODE_BLOCK_REGEX = "``````powershell(.*\n)+? *``````"
+$OUTPUT_BLOCK_REGEX = "``````output(.*\n)+? *``````"
 
 function Get-ExamplesDetailsFromMd {
     param (
@@ -15,25 +15,25 @@ function Get-ExamplesDetailsFromMd {
 
     $fileContent = Get-Content $MarkdownPath -Raw
 
-    $indexOfExamples = $fileContent.IndexOf($headingOfExamples)
-    $indexOfParameters = $fileContent.IndexOf($headingOfParameters)
+    $indexOfExamples = $fileContent.IndexOf($EXAMPLES_HEADING)
+    $indexOfParameters = $fileContent.IndexOf($PARAMETERS_HEADING)
 
     $exampleNumber = 0
     $examplesProperties = @()
 
     $examplesContent = $fileContent.Substring($indexOfExamples, $indexOfParameters - $indexOfExamples)
-    $examplesTitles = ($examplesContent | Select-String -Pattern $headingOfExampleTitleRegex -AllMatches).Matches
-    # Skip the 1st because it is $headingOfExamples.
-    $examplesContentWithoutTitle = $examplesContent -split $headingOfExampleTitleRegex | Select-Object -Skip 1
+    $examplesTitles = ($examplesContent | Select-String -Pattern $SINGLE_EXAMPLE_TITLE_HEADING_REGEX -AllMatches).Matches
+    # Skip the 1st because it is $EXAMPLES_HEADING.
+    $examplesContentWithoutTitle = $examplesContent -split $SINGLE_EXAMPLE_TITLE_HEADING_REGEX | Select-Object -Skip 1
     foreach ($exampleContent in $examplesContentWithoutTitle) {
-        $exampleTitle = ($examplesTitles[$exampleNumber].Value -split $headingOfExampleRegex)[1].Trim()
+        $exampleTitle = ($examplesTitles[$exampleNumber].Value -split $SINGLE_EXAMPLE_HEADING_REGEX)[1].Trim()
         $exampleNumber++
         $exampleCodes = @()
         $exampleOutputs = @()
         $exampleDescriptions = @()
 
-        $exampleCodeBlocks = ($exampleContent | Select-String -Pattern $codeBlockRegex -AllMatches).Matches
-        $exampleOutputBlocks = ($exampleContent | Select-String -Pattern $outputBlockRegex -AllMatches).Matches
+        $exampleCodeBlocks = ($exampleContent | Select-String -Pattern $CODE_BLOCK_REGEX -AllMatches).Matches
+        $exampleOutputBlocks = ($exampleContent | Select-String -Pattern $OUTPUT_BLOCK_REGEX -AllMatches).Matches
         if ($exampleCodeBlocks.Count -eq 0) {
             $description = $exampleContent.Trim()
             if ($description -ne "") {
@@ -139,52 +139,143 @@ function Get-ExamplesDetailsFromMd {
     return $examplesProperties
 }
 
+function Measure-ScriptFile {
+    param (
+        [Parameter(Mandatory)]
+        [string]$ScriptPath
+    )
+
+    $assignmentLeftAndRight = @{}
+    $importSucceededScriptPaths = @()
+    $importFailedScriptPaths = @()
+    $assignmentLeftAndRight += @{
+        '$PSScriptRoot' = [IO.Path]::GetDirectoryName($ScriptPath)
+    }
+
+    [System.Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$null, [ref]$null).FindAll({$args[0] -is [System.Management.Automation.Language.Ast]}, $true) | foreach {
+        if ($_ -is [System.Management.Automation.Language.CommandAst]) {
+            [System.Management.Automation.Language.CommandAst]$commandAst = $_
+            if ($commandAst.InvocationOperator -eq "Dot") {
+                $importedScriptPath = $commandAst.CommandElements[0].Extent.Text
+                while ($importedScriptPath -ne $importedScriptPath_Before) {
+                    $importedScriptPath_Before = $importedScriptPath
+                    $assignmentLeftAndRight.Keys.ForEach({
+                        $importedScriptPath = $importedScriptPath.Replace($_, $assignmentLeftAndRight.$_)
+                    })
+                }
+                $importedScriptPath = Invoke-Expression "Write-Output $importedScriptPath"
+                if (Test-Path $importedScriptPath -PathType Leaf) {
+                    $importSucceededScriptPaths += $importedScriptPath
+                }
+                else {
+                    $importFailedScriptPaths += $commandAst.CommandElements[0].Extent.Text
+                }
+            }
+        }
+        if ($_ -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+            [System.Management.Automation.Language.AssignmentStatementAst]$assignmentStatementAst = $_
+            if ($assignmentLeftAndRight.ContainsKey($assignmentStatementAst.Left.Extent.Text)) {
+                $assignmentLeftAndRight.($assignmentStatementAst.Left.Extent.Text) = $assignmentStatementAst.Right.Extent.Text
+            }
+            else {
+                $assignmentLeftAndRight += @{
+                    $assignmentStatementAst.Left.Extent.Text = $assignmentStatementAst.Right.Extent.Text
+                }
+            }
+        }
+    }
+    return @{
+        SucceededResults = $importSucceededScriptPaths
+        FailedResults = $importFailedScriptPaths
+    }
+}
+
+function Add-ContentToHeadOfRule {
+    param (
+        [string[]]$SrcFilePaths,
+        [string]$DstFolderPath,
+        [string]$ImportContent
+    )
+
+    Remove-Item $DstFolderPath\* -Recurse -ErrorAction SilentlyContinue
+    $null = New-Item -ItemType Directory -Path $DstFolderPath -ErrorAction SilentlyContinue
+    Get-ChildItem $SrcFilePaths -Filter *.psm1 | foreach {
+        ($ImportContent + (Get-Content $_ -Raw)) | Out-File "$DstFolderPath\$($_.Name)" -Encoding utf8
+    }
+}
+
 function Get-ScriptAnalyzerResult {
     param (
         [string]$Module,
         [string]$ScriptPath,
+        [Parameter(Mandatory, HelpMessage = "PSScriptAnalyzer custom rules path. Supports wildcard.")]
         [string[]]$RulePath,
         [switch]$IncludeDefaultRules
-    )
+)
 
     # Validate script file exists.
     if (!(Test-Path $ScriptPath -PathType Leaf)) {
         throw "Cannot find cached script file '$ScriptPath'."
     }
 
+    $scriptName = [IO.Path]::GetFileName($ScriptPath)
+    $scriptBaseName = [IO.Path]::GetFileNameWithoutExtension($ScriptPath)
+    if ($scriptBaseName.Split("-").Count -eq 3 -and $scriptBaseName.Split("-")[2] -as [int]) {
+        $cmdlet = $scriptBaseName.Split("-")[0..1] -join "-"
+        $example = $scriptBaseName.Split("-")[2]
+    }
+    else {
+        $cmdlet = $scriptName
+        $example = ""
+    }
+    $importFailedResults = @()
+    $importContent = ""
+
+    $importResults = Measure-ScriptFile $ScriptPath
+    foreach ($path in $importResults.FailedResults) {
+        $importFailedResults += [PSCustomObject]@{
+            Module = $module
+            Cmdlet = $cmdlet
+            Example = $example
+            RuleName = "Imported_Script_Not_Exist"
+            Message = "Imported Script $path doesn't exist."
+            Extent = ". $path"
+        }
+    }
+    $importResults.SucceededResults | foreach {
+        $importContent += ". $_`n"
+    }
+    $tempFolderPath = "TempPSSARules"
+    Add-ContentToHeadOfRule $RulePaths $tempFolderPath $importContent
     if ($RulePath -eq $null) {
         $results = Invoke-ScriptAnalyzer -Path $ScriptPath -IncludeDefaultRules:$IncludeDefaultRules.IsPresent
     }
     else {
         $results = Invoke-ScriptAnalyzer -Path $ScriptPath -CustomRulePath $RulePath -IncludeDefaultRules:$IncludeDefaultRules.IsPresent
     }
-    $scriptBaseName = [IO.Path]::GetFileNameWithoutExtension($ScriptPath)
-    return $results | Select-Object -Property @{Name = "Module"; Expression = {$Module}},
-        @{Name = "Cmdlet";Expression={$scriptBaseName.Split("-")[0..1] -join "-"}},
-        @{Name="Example";Expression={$scriptBaseName.Split("-")[2]}},
+    Remove-Item $tempFolderPath -Recurse
+
+    return $importFailedResults + $results | Select-Object -Property @{Name = "Module"; Expression = {$Module}},
+        @{Name = "Cmdlet";Expression={$Cmdlet}},
+        @{Name ="Example";Expression={$Example}},
         RuleName, Message, Extent
 }
 
-function Measure-SectionMissingAndScriptError {
+function Measure-SectionMissingAndOutputScript {
     param (
         [string]$Module,
         [string]$Cmdlet,
         [string]$MarkdownPath,
-        [string[]]$PublishedCmdletDocs,
-        [Parameter(Mandatory, HelpMessage = "PSScriptAnalyzer custom rules path. Supports wildcard.")]
-        [string[]]$RulePath,
-        [switch]$AnalyzeExampleScript,
-        [switch]$IncludeDefaultRules,
-        [switch]$OutputExampleScript,
+        [switch]$OutputScriptsInFile,
         [string]$OutputPath
     )
 
     $fileContent = Get-Content $MarkdownPath -Raw
 
-    $indexOfSynopsis = $fileContent.IndexOf($headingOfSynopsis)
-    $indexOfSyntax = $fileContent.IndexOf($headingOfSyntax)
-    $indexOfDescription = $fileContent.IndexOf($headingOfDescription)
-    $indexOfExamples = $fileContent.IndexOf($headingOfExamples)
+    $indexOfSynopsis = $fileContent.IndexOf($SYNOPSIS_HEADING)
+    $indexOfSyntax = $fileContent.IndexOf($SYNTAX_HEADING)
+    $indexOfDescription = $fileContent.IndexOf($DESCRIPTION_HEADING)
+    $indexOfExamples = $fileContent.IndexOf($EXAMPLES_HEADING)
 
     $exampleNumber = 0
     $missingSynopsis = 0
@@ -198,7 +289,7 @@ function Measure-SectionMissingAndScriptError {
 
     # If Synopsis section exists
     if ($indexOfSynopsis -ne -1) {
-        $synopsisContent = $fileContent.Substring($indexOfSynopsis + $headingOfSynopsis.Length, $indexOfSyntax - ($indexOfSynopsis + $headingOfSynopsis.Length))
+        $synopsisContent = $fileContent.Substring($indexOfSynopsis + $SYNOPSIS_HEADING.Length, $indexOfSyntax - ($indexOfSynopsis + $SYNOPSIS_HEADING.Length))
         if ($synopsisContent.Trim() -eq "") {
             $missingSynopsis = 1
         }
@@ -212,7 +303,7 @@ function Measure-SectionMissingAndScriptError {
 
     # If Description section exists
     if ($indexOfDescription -ne -1) {
-        $descriptionContent = $fileContent.Substring($indexOfDescription + $headingOfDescription.Length, $indexOfExamples - ($indexOfDescription + $headingOfDescription.Length))
+        $descriptionContent = $fileContent.Substring($indexOfDescription + $DESCRIPTION_HEADING.Length, $indexOfExamples - ($indexOfDescription + $DESCRIPTION_HEADING.Length))
         if ($descriptionContent.Trim() -eq "") {
             $missingDescription = 1
         }
@@ -266,64 +357,47 @@ function Measure-SectionMissingAndScriptError {
 
             $cmdletExamplesScriptPath = "$OutputPath\$module"
             # Output codes by example
-            if ($OutputExampleScript.IsPresent) {
+            if ($OutputScriptsInFile.IsPresent) {
                 $null = New-Item -ItemType Directory -Path $cmdletExamplesScriptPath -ErrorAction SilentlyContinue
                 [IO.File]::WriteAllText("$cmdletExamplesScriptPath\$cmdlet-$exampleNumber.ps1", $exampleDetails.Codes -join "`n", (New-Object Text.UTF8Encoding($false)))
-            }
-            # Analyze codes
-            if ($AnalyzeExampleScript.IsPresent) {
-                $analysisResults = Get-ScriptAnalyzerResult $module $cmdletExamplesScriptPath $RulePath -IncludeDefaultRules:$IncludeDefaultRules.IsPresent -ErrorAction Continue
             }
         }
     }
 
-    $status = $null
-    $missing = $null
-    $deletePromptAndSeparateOutput = $null
-
     # StatusTable
     $examples = $examplesDetails.Count
-    if ($PublishedCmdletDocs -ne $null -and !$PublishedCmdletDocs.Contains($cmdlet)) {
-        $isInPublishedDocs = "False"
-    }
-    else {
-        $isInPublishedDocs = $null
-    }
     $status = [PSCustomObject]@{
         Module = $module
         Cmdlet = $cmdlet
         Examples = $examples
-        isInPublishedDocs = $isInPublishedDocs
     }
 
-    if ($isInPublishedDocs -eq $null) {
-        # MissingTable
-        $missingExampleTitle += ($examplesDetails.Title | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-        $missingExampleCode += ($examplesDetails.Codes | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-        $missingExampleOutput += ($examplesDetails.Outputs | Select-String -Pattern "{{[A-Za-z ]*}}").Count
-        $missingExampleDescription += ($examplesDetails.Description | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+    # MissingTable
+    $missingExampleTitle += ($examplesDetails.Title | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+    $missingExampleCode += ($examplesDetails.Codes | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+    $missingExampleOutput += ($examplesDetails.Outputs | Select-String -Pattern "{{[A-Za-z ]*}}").Count
+    $missingExampleDescription += ($examplesDetails.Description | Select-String -Pattern "{{[A-Za-z ]*}}").Count
 
-        if ($missingSynopsis -ne 0 -or $missingDescription -ne 0 -or $missingExampleTitle -ne 0 -or $missingExampleCode -ne 0 -or $missingExampleOutput -ne 0 -or $missingExampleDescription -ne 0) {
-            $missing = [PSCustomObject]@{
-                Module = $module
-                Cmdlet = $cmdlet
-                MissingSynopsis = $missingSynopsis
-                MissingDescription = $missingDescription
-                MissingExampleTitle = $missingExampleTitle
-                MissingExampleCode = $missingExampleCode
-                MissingExampleOutput = $missingExampleOutput
-                MissingExampleDescription = $missingExampleDescription
-            }
+    if ($missingSynopsis -ne 0 -or $missingDescription -ne 0 -or $missingExampleTitle -ne 0 -or $missingExampleCode -ne 0 -or $missingExampleOutput -ne 0 -or $missingExampleDescription -ne 0) {
+        $missing = [PSCustomObject]@{
+            Module = $module
+            Cmdlet = $cmdlet
+            MissingSynopsis = $missingSynopsis
+            MissingDescription = $missingDescription
+            MissingExampleTitle = $missingExampleTitle
+            MissingExampleCode = $missingExampleCode
+            MissingExampleOutput = $missingExampleOutput
+            MissingExampleDescription = $missingExampleDescription
         }
+    }
 
-        # DeletePromptAndSeparateOutputTable
-        if ($needDeleting -ne 0 -or $needSplitting -ne 0) {
-            $deletePromptAndSeparateOutput = [PSCustomObject]@{
-                Module = $module
-                Cmdlet = $cmdlet
-                NeedDeleting = $needDeleting
-                NeedSplitting = $needSplitting
-            }
+    # DeletePromptAndSeparateOutputTable
+    if ($needDeleting -ne 0 -or $needSplitting -ne 0) {
+        $deletePromptAndSeparateOutput = [PSCustomObject]@{
+            Module = $module
+            Cmdlet = $cmdlet
+            NeedDeleting = $needDeleting
+            NeedSplitting = $needSplitting
         }
     }
 
@@ -331,6 +405,5 @@ function Measure-SectionMissingAndScriptError {
         Status = $status
         Missing = $missing
         DeletePromptAndSeparateOutput = $deletePromptAndSeparateOutput
-        AnalysisResults = $analysisResults
     }
 }
