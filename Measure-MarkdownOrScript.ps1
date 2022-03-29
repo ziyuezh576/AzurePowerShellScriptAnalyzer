@@ -26,7 +26,7 @@ param (
 
 if ($PSCmdlet.ParameterSetName -eq "Markdown") {
     $ScriptsByExamplePath = ".\ScriptsByExample"
-    $statusTable = @()
+    $scaleTable = @()
     $missingTable = @()
     $deletePromptAndSeparateOutputTable = @()
 }
@@ -45,7 +45,7 @@ if ($PSCmdlet.ParameterSetName -eq "Markdown") {
                 $result = Measure-SectionMissingAndOutputScript $module $cmdlet $_.FullName `
                     -OutputScriptsInFile:$OutputScriptsInFile.IsPresent `
                     -OutputPath $OutputPath\$ScriptsByExamplePath
-                $statusTable += $result.Status
+                $scaleTable += $result.Scale
                 $missingTable += $result.Missing
                 $deletePromptAndSeparateOutputTable += $result.DeletePromptAndSeparateOutput
             }
@@ -79,7 +79,7 @@ if ($PSCmdlet.ParameterSetName -eq "Markdown" -and $CleanCache.IsPresent) {
 }
 
 # Summarize analysis results
-$statusTable | Export-Csv "$OutputPath\Status.csv" -NoTypeInformation
+$scaleTable | Export-Csv "$OutputPath\Scale.csv" -NoTypeInformation
 $missingTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Missing.csv" -NoTypeInformation
 $deletePromptAndSeparateOutputTable | where {$_ -ne $null} | Export-Csv "$OutputPath\DeletingSeparating.csv" -NoTypeInformation
 $analysisResultsTable | where {$_ -ne $null} | Export-Csv "$OutputPath\Results-$(Get-Date -UFormat %s).csv" -NoTypeInformation

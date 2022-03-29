@@ -4,6 +4,6 @@
 4. It will create:
     - PowerShell codes splitted by example to ".\ScriptsByExample\\$module\\*.ps1"
     - Analyzing results by module to ".\ScriptsByExample\\$module.csv"
-    - ".\Status.csv"
+    - ".\Scale.csv"
     - ".\Missing.csv"
     - ".\DeletingSeparating.csv"

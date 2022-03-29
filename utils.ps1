@@ -8,6 +8,28 @@ $SINGLE_EXAMPLE_TITLE_HEADING_REGEX = "$SINGLE_EXAMPLE_HEADING_REGEX.+"
 $CODE_BLOCK_REGEX = "``````powershell(.*\n)+? *``````"
 $OUTPUT_BLOCK_REGEX = "``````output(.*\n)+? *``````"
 
+class Scale {
+    [string]$Module
+    [string]$Cmdlet
+    [int]$Examples
+}
+class Missing {
+    [string]$Module
+    [string]$Cmdlet
+    [int]$MissingSynopsis
+    [int]$MissingDescription
+    [int]$MissingExampleTitle
+    [int]$MissingExampleCode
+    [int]$MissingExampleOutput
+    [int]$MissingExampleDescription
+}
+class DeletePromptAndSeparateOutput {
+    [string]$Module
+    [string]$Cmdlet
+    [int]$NeedDeleting
+    [int]$NeedSplitting
+}
+
 function Get-ExamplesDetailsFromMd {
     param (
         [string]$MarkdownPath
@@ -364,9 +386,9 @@ function Measure-SectionMissingAndOutputScript {
         }
     }
 
-    # StatusTable
+    # ScaleTable
     $examples = $examplesDetails.Count
-    $status = [PSCustomObject]@{
+    $scale = [Scale]@{
         Module = $module
         Cmdlet = $cmdlet
         Examples = $examples
@@ -379,7 +401,7 @@ function Measure-SectionMissingAndOutputScript {
     $missingExampleDescription += ($examplesDetails.Description | Select-String -Pattern "{{[A-Za-z ]*}}").Count
 
     if ($missingSynopsis -ne 0 -or $missingDescription -ne 0 -or $missingExampleTitle -ne 0 -or $missingExampleCode -ne 0 -or $missingExampleOutput -ne 0 -or $missingExampleDescription -ne 0) {
-        $missing = [PSCustomObject]@{
+        $missing = [Missing]@{
             Module = $module
             Cmdlet = $cmdlet
             MissingSynopsis = $missingSynopsis
@@ -393,7 +415,7 @@ function Measure-SectionMissingAndOutputScript {
 
     # DeletePromptAndSeparateOutputTable
     if ($needDeleting -ne 0 -or $needSplitting -ne 0) {
-        $deletePromptAndSeparateOutput = [PSCustomObject]@{
+        $deletePromptAndSeparateOutput = [DeletePromptAndSeparateOutput]@{
             Module = $module
             Cmdlet = $cmdlet
             NeedDeleting = $needDeleting
@@ -402,7 +424,7 @@ function Measure-SectionMissingAndOutputScript {
     }
 
     return @{
-        Status = $status
+        Scale = $scale
         Missing = $missing
         DeletePromptAndSeparateOutput = $deletePromptAndSeparateOutput
     }
