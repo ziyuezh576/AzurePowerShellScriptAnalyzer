@@ -203,7 +203,7 @@ function Measure-ParameterNameAndValue {
                                     $PositionMaximum = ($global:ParameterSet.Parameters.Position | Measure-Object -Maximum).Maximum
                                     for ($Position = 0; $Position -le $PositionMaximum; $Position++) {
                                         $ImplicitParameterName = @() + ($global:ParameterSet.Parameters | where {$_.Position -eq $Position}).Name
-                                        if ($ImplicitParameterName -ne $null -and $ImplicitParameterName -notin $global:ParameterExpressionPair.ParameterName) {
+                                        if ($ImplicitParameterName.Count -ne 0 -and $ImplicitParameterName -notin $global:ParameterExpressionPair.ParameterName) {
                                             $global:ParameterExpressionPair += @{
                                                 ParameterName = $ImplicitParameterName[0]
                                                 ExpressionToParameter = $CommandExpressionElement
