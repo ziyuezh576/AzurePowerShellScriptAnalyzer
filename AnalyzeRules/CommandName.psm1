@@ -54,7 +54,7 @@ function Measure-CommandName {
                                 }
                                 return $true
                             }
-                            if ($CommandName -cnotmatch "^([A-Z][a-z]*)+-([A-Z][a-z]*)+") {
+                            if ($CommandName -cnotmatch "^([A-Z][a-z]+)+-([A-Z][a-z0-9]*)+$") {
                                 # CommandName doesn't follow the Capitalization Conventions.
                                 $global:CommandParameterPair += @{
                                     CommandName = $CommandName

@@ -120,26 +120,6 @@ function Measure-ParameterNameAndValue {
                                         break
                                     }
                                 }
-                                if ($CommandElement -is [System.Management.Automation.Language.VariableExpressionAst] -and
-                                [System.Management.Automation.Language.VariableExpressionAst]$CommandElement.Splatted -eq $true) {
-                                    $ParameterNames = (Invoke-Expression $global:AssignmentLeftAndRight.$("$" + [System.Management.Automation.Language.VariableExpressionAst]$CommandElement.VariablePath).Extext.Text).Keys
-                                    if ($ParameterNames.Count -eq 0) {
-                                        # Variable value is not a hashtable.
-                                        $global:CommandParameterPair += @{
-                                            CommandName = $CommandAst.Extent.Text
-                                            ParameterName = ""
-                                            ExpressionToParameter = $CommandElement.Extent.Text
-                                        }
-                                        return $true
-                                    }
-                                    foreach ($ParameterName in $ParameterNames) {
-                                        if ($ParameterName -in $AllParameters -and $ParameterName -notin $Parameters) {
-                                            # Exclude ParameterNames that are not in AllParameters. They will be reported later.
-                                            $AllParameterNamesInASet_Flag = $false
-                                            break
-                                        }
-                                    }
-                                }
                             }
                             if ($AllParameterNamesInASet_Flag) {
                                 break
@@ -222,10 +202,10 @@ function Measure-ParameterNameAndValue {
                                     $CommandExpressionElement = [System.Management.Automation.Language.ExpressionAst]$CommandElement
                                     $PositionMaximum = ($global:ParameterSet.Parameters.Position | Measure-Object -Maximum).Maximum
                                     for ($Position = 0; $Position -le $PositionMaximum; $Position++) {
-                                        $ImplicitParameterName = ($global:ParameterSet.Parameters | where {$_.Position -eq $Position})[0].Name
+                                        $ImplicitParameterName = @() + ($global:ParameterSet.Parameters | where {$_.Position -eq $Position}).Name
                                         if ($ImplicitParameterName -ne $null -and $ImplicitParameterName -notin $global:ParameterExpressionPair.ParameterName) {
                                             $global:ParameterExpressionPair += @{
-                                                ParameterName = $ImplicitParameterName
+                                                ParameterName = $ImplicitParameterName[0]
                                                 ExpressionToParameter = $CommandExpressionElement
                                             }
                                             $i += 1

@@ -5,8 +5,8 @@ $EXAMPLES_HEADING = "## EXAMPLES"
 $PARAMETERS_HEADING = "## PARAMETERS"
 $SINGLE_EXAMPLE_HEADING_REGEX = "\n###\s*"
 $SINGLE_EXAMPLE_TITLE_HEADING_REGEX = "$SINGLE_EXAMPLE_HEADING_REGEX.+"
-$CODE_BLOCK_REGEX = "``````powershell(.*\n)+? *``````"
-$OUTPUT_BLOCK_REGEX = "``````output(.*\n)+? *``````"
+$CODE_BLOCK_REGEX = "``````(powershell)?\s*\n(.*\n)+?\s*``````"
+$OUTPUT_BLOCK_REGEX = "``````output\s*\n(.*\n)+?\s*``````"
 
 class Scale {
     [string]$Module
@@ -101,7 +101,7 @@ function Get-ExamplesDetailsFromMd {
                                 # Content before the first codeline, between codelines, and after the last codeline is output.
                                 # If an output line starts with "-", it's an incomplete codeline, but it should still be added to output.
                                 if ($i -eq 0) {
-                                    $startIndex = $exampleCodeBlock.Value.IndexOfAny("`n")
+                                    $startIndex = $exampleCodeBlock.Value.IndexOf("`n")
                                     $output = $exampleCodeBlock.Value.Substring($startIndex, $exampleCodeLines[$i].Index - $startIndex).Trim()
                                     if ($output -ne "") {
                                         $exampleOutputs += $output
@@ -112,7 +112,7 @@ function Get-ExamplesDetailsFromMd {
                                     $nextStartIndex = $exampleCodeLines[$i + 1].Index
                                 }
                                 else {
-                                    $nextStartIndex = $exampleCodeBlock.Value.LastIndexOfAny("`n")
+                                    $nextStartIndex = $exampleCodeBlock.Value.LastIndexOf("`n")
                                 }
                                 $output = $exampleCodeBlock.Value.Substring($startIndex, $nextStartIndex - $startIndex).Trim()
                                 if ($output -match "^-+\w") {
@@ -128,13 +128,13 @@ function Get-ExamplesDetailsFromMd {
             }
             else {
                 foreach ($exampleCodeBlock in $exampleCodeBlocks) {
-                    $code = $exampleCodeBlock.Value.Substring($exampleCodeBlock.Value.IndexOfAny("`n"), $exampleCodeBlock.Value.LastIndexOfAny("`n") - $exampleCodeBlock.Value.IndexOfAny("`n")).Trim()
+                    $code = $exampleCodeBlock.Value.Substring($exampleCodeBlock.Value.IndexOf("`n"), $exampleCodeBlock.Value.LastIndexOf("`n") - $exampleCodeBlock.Value.IndexOf("`n")).Trim()
                     if ($code -ne "") {
                         $exampleCodes += $code
                     }
                 }
                 foreach ($exampleOutputBlock in $exampleOutputBlocks) {
-                    $output = $exampleOutputBlock.Value.Substring($exampleOutputBlock.Value.IndexOfAny("`n"), $exampleOutputBlock.Value.LastIndexOfAny("`n") - $exampleOutputBlock.Value.IndexOfAny("`n")).Trim()
+                    $output = $exampleOutputBlock.Value.Substring($exampleOutputBlock.Value.IndexOf("`n"), $exampleOutputBlock.Value.LastIndexOf("`n") - $exampleOutputBlock.Value.IndexOf("`n")).Trim()
                     if ($output -ne "") {
                         $exampleOutputs += $output
                     }
@@ -219,7 +219,6 @@ function Add-ContentToHeadOfRule {
         [string]$ImportContent
     )
 
-    Remove-Item $DstFolderPath\* -Recurse -ErrorAction SilentlyContinue
     $null = New-Item -ItemType Directory -Path $DstFolderPath -ErrorAction SilentlyContinue
     Get-ChildItem $SrcFilePaths -Filter *.psm1 | foreach {
         ($ImportContent + (Get-Content $_ -Raw)) | Out-File "$DstFolderPath\$($_.Name)" -Encoding utf8
@@ -289,7 +288,7 @@ function Measure-SectionMissingAndOutputScript {
         [string]$Cmdlet,
         [string]$MarkdownPath,
         [switch]$OutputScriptsInFile,
-        [string]$OutputPath
+        [string]$OutputFolder
     )
 
     $fileContent = Get-Content $MarkdownPath -Raw
@@ -372,16 +371,16 @@ function Measure-SectionMissingAndOutputScript {
             # Delete prompts
             $exampleCodes = $exampleDetails.Codes
             for ($i = $exampleCodes.Count - 1; $i -ge 0; $i--) {
-                $newCode = $exampleDetails.Codes[$i] -replace "\n([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", "`n"
+                $newCode = $exampleDetails.Codes[$i] -replace "([A-Za-z \t\\:>])*(PS|[A-Za-z]:)(\w|[\\/\[\].\- ])*(>|&gt;)+( PS)*[ \t]*", ""
                 $newCode = $newCode -replace "(?<=[A-Za-z]\w+-[A-Za-z]\w+)\.ps1", ""
                 $exampleCodes[$i] = $newCode
             }
 
-            $cmdletExamplesScriptPath = "$OutputPath\$module"
+            $cmdletExamplesScriptPath = "$OutputFolder\$module"
             # Output codes by example
             if ($OutputScriptsInFile.IsPresent) {
                 $null = New-Item -ItemType Directory -Path $cmdletExamplesScriptPath -ErrorAction SilentlyContinue
-                [IO.File]::WriteAllText("$cmdletExamplesScriptPath\$cmdlet-$exampleNumber.ps1", $exampleDetails.Codes -join "`n", (New-Object Text.UTF8Encoding($false)))
+                [IO.File]::WriteAllText("$cmdletExamplesScriptPath\$cmdlet-$exampleNumber.ps1", $exampleCodes -join "`n", (New-Object Text.UTF8Encoding($false)))
             }
         }
     }
