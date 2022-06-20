@@ -7,12 +7,23 @@ enum RuleNames {
     Duplicate_Parameter_Name
     Unassigned_Parameter
     Unassigned_Variable
-    Unbinded_Parameter_Name
+    Unbinded_Expression
     Mismatched_Parameter_Value_Type
 }
 
-function Get-ActualVariableValue {
-    param([System.Management.Automation.Language.Ast]$CommandElementAst)
+function Get-ParameterNameNotAlias {
+    param (
+        [System.Management.Automation.CommandInfo]$GetCommand,
+        [string]$ParameterName
+    )
+
+    return ($GetCommand.Parameters.Values | where {
+        $ParameterName -in @($_.Name) + @($_.Aliases)
+    }).Name
+}
+
+function Get-FinalVariableValue {
+    param ([System.Management.Automation.Language.Ast]$CommandElementAst)
 
     while ($true) {
         if ($CommandElementAst.Expression -ne $null) {
@@ -34,6 +45,84 @@ function Get-ActualVariableValue {
     return $CommandElementAst
 }
 
+function Measure-ParameterNameValuePair {
+    param (
+        [System.Management.Automation.CommandInfo]$GetCommand,
+        [string]$ParameterName,
+        [System.Management.Automation.Language.Ast]$CommandElementAst
+    )
+
+    $ParameterNameNotAlias = Get-ParameterNameNotAlias $GetCommand $ParameterName
+    $CommandElementAst_Copy = Get-FinalVariableValue $CommandElementAst
+
+    while ($CommandElementAst_Copy -is [System.Management.Automation.Language.VariableExpressionAst]) {
+        # get the actual value
+        $CommandElementAst_Copy = Get-FinalVariableValue $global:AssignmentLeft_Right_Pair.("$" + ([System.Management.Automation.Language.VariableExpressionAst]$CommandElementAst_Copy).VariablePath)
+        if ($CommandElementAst_Copy -eq $null) {
+            # Variable is not assigned with a value.
+            return @{
+                CommandName = $CommandName
+                ParameterName = "-$ParameterName"
+                ExpressionToParameter = $CommandElementAst.Extent.Text + " is a null-valued parameter value."
+            }
+        }
+    }
+    if ($CommandElementAst_Copy -is [System.Management.Automation.Language.CommandAst]) {
+        # value is a command
+        $GetElementCommand = Get-Command $CommandElementAst_Copy.CommandElements[0].Extent.Text -ErrorAction SilentlyContinue
+        if ($GetElementCommand -eq $null) {
+            # CommandName is not valid.
+            # will be reported in next CommandAst
+            return $null
+        }
+        $ReturnType = $GetElementCommand.OutputType[0].Type
+        $ExpectedType = $GetCommand.Parameters.$ParameterNameNotAlias.ParameterType
+        if ($ReturnType -eq $null)
+        {
+            return @{
+                CommandName = $CommandName
+                ParameterName = "-$ParameterName"
+                ExpressionToParameter = $CommandElementAst.Extent.Text
+            }
+        }
+
+        if ($ReturnType.IsArray) {
+            $ReturnType = $ReturnType.GetElementType()
+        }
+        if ($ExpectedType.IsArray) {
+            $ExpectedType = $ExpectedType.GetElementType()
+        }
+        if ($ReturnType -ne $ExpectedType -and $ReturnType -isnot $ExpectedType) {
+            if (!$ExpectedType.IsInterfaces) {
+                return @{
+                    CommandName = $CommandName
+                    ParameterName = "-$ParameterName"
+                    ExpressionToParameter = $CommandElementAst.Extent.Text
+                }
+            }
+            elseif ($ExpectedType -notin $ReturnType.GetInterfaces()) {
+                return @{
+                    CommandName = $CommandName
+                    ParameterName = "-$ParameterName"
+                    ExpressionToParameter = $CommandElementAst.Extent.Text
+                }
+            }
+        }
+    }
+    else {
+        # value is a constant expression
+        $ExpectedType = $GetCommand.Parameters.$ParameterNameNotAlias.ParameterType
+        $ConvertedObject = $CommandElementAst_Copy.Extent.Text -as $ExpectedType
+        if ($CommandElementAst_Copy.StaticType -ne $ExpectedType -and $ConvertedObject -eq $null) {
+            return @{
+                CommandName = $CommandName
+                ParameterName = "-$ParameterName"
+                ExpressionToParameter = $CommandElementAst.Extent.Text
+            }
+        }
+    }
+}
+
 <#
 .DESCRIPTION
 Detect parameter and expression error
@@ -41,7 +130,7 @@ Detect parameter and expression error
 function Measure-ParameterNameAndValue {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
-    param(
+    param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.Language.ScriptBlockAst]
@@ -50,130 +139,126 @@ function Measure-ParameterNameAndValue {
 
     process {
         $Results = @()
-        $global:CommandParameterPair = @()
+        $global:CommandName_Parameter_Expression_Pair = @()
         $global:Ast = $null
-        $global:AssignmentLeftAndRight = @{}
+        $global:AssignmentLeft_Right_Pair = @{}
         $global:ParameterSet = $null
-        $global:AppearedParameters = @()
-        $global:AppearedExpressions = @()
-        $global:ParameterExpressionPair = @()
+        $global:Command_AppearedParameters_Pair = @{}
+        $global:Command_AppearedExpressions_Pair = @{}
+        $global:Command_ParameterAndExpression_Pair = @{}
         $global:SkipNextCommandElementAst = $false
 
         try {
             [ScriptBlock]$Predicate = {
-                param([System.Management.Automation.Language.Ast]$Ast)
+                param ([System.Management.Automation.Language.Ast]$Ast)
                 $global:Ast = $Ast
 
                 if ($Ast -is [System.Management.Automation.Language.AssignmentStatementAst]) {
                     [System.Management.Automation.Language.AssignmentStatementAst]$AssignmentStatementAst = $Ast
-                    if ($global:AssignmentLeftAndRight.ContainsKey($AssignmentStatementAst.Left.Extent.Text)) {
-                        $global:AssignmentLeftAndRight.($AssignmentStatementAst.Left.Extent.Text) = $AssignmentStatementAst.Right
-                    }
-                    else {
-                        $global:AssignmentLeftAndRight += @{
-                            $AssignmentStatementAst.Left.Extent.Text = $AssignmentStatementAst.Right
-                        }
-                    }
+                    $global:AssignmentLeft_Right_Pair.($AssignmentStatementAst.Left.Extent.Text) = $AssignmentStatementAst.Right
                 }
 
                 if ($Ast -is [System.Management.Automation.Language.CommandElementAst] -and $Ast.Parent -is [System.Management.Automation.Language.CommandAst]) {
                     [System.Management.Automation.Language.CommandElementAst]$CommandElementAst = $Ast
+                    [System.Management.Automation.Language.CommandAst]$CommandAst = $CommandElementAst.Parent
+
                     if ($global:SkipNextCommandElementAst) {
                         $global:SkipNextCommandElementAst = $false
                         return $false
                     }
 
-                    $CommandAst = $CommandElementAst.Parent
+                    $CommandText = $CommandAst.Extent.Text
                     # $CommandName = $CommandAst.GetCommandName()
                     $CommandName = $CommandAst.CommandElements[0].Extent.Text
-                    $GetCommand = Get-Command $CommandName -ErrorAction SilentlyContinue
+                    $GetCommand = Get-Command $CommandName -ErrorAction Ignore
                     if ($GetCommand -eq $null) {
                         return $false
                     }
-
                     if ($GetCommand.CommandType -eq "Alias") {
-                        $CommandNameNotAlias = $GetCommand.ResolvedCommandName
+                        # $CommandNameNotAlias = $GetCommand.ResolvedCommandName
+                        $CommandNameNotAlias = (Get-Alias $CommandName)[0].ResolvedCommandName
                         $GetCommand = Get-Command $CommandNameNotAlias
                     }
 
-                    if ($CommandElementAst -is [System.Management.Automation.Language.ExpressionAst] -and
+                    if ($CommandElementAst -is [System.Management.Automation.Language.ConstantExpressionAst] -and
                     $CommandAst.CommandElements.Extent.Text.IndexOf($CommandElementAst.Extent.Text) -eq 0) {
-                        # This CommandElement is the first CommandElement of the command.
-                        $global:AppearedParameters = @() #empty
-                        $global:AppearedExpressions = @() #empty
+                        # This CommandElement is cmdlet.
+                        # reset or add
+                        $global:Command_AppearedParameters_Pair.$CommandText = @() 
+                        $global:Command_AppearedExpressions_Pair.$CommandText = @() 
+                        $global:Command_ParameterAndExpression_Pair.$CommandText = @() 
 
-                        # sort ParameterSets, move ParameterSets that have position parameters to the front.
-                        $ParameterSets = @() +
-                            # ($GetCommand.ParameterSets | where {$_.Name -eq $GetCommand.DefaultParameterSet}) +
-                            ($GetCommand.ParameterSets | Sort-Object {($_.Parameters.Position | where {$_ -ge 0}).Count} -Descending)
+                        # Move ParameterSets that have more position parameters to the front.
+                        $ParameterSets = @() + ($GetCommand.ParameterSets | Sort-Object {($_.Parameters.Position | where {$_ -ge 0}).Count} -Descending)
                         foreach ($ParameterSet in $ParameterSets) {
-                            # ParameterSets.Count is 0 when CommandName is an alias.
-                            $AllParameterNamesInASet_Flag = $true
-                            $Parameters = $ParameterSet.Parameters.Name + $ParameterSet.Parameters.Aliases
+                            $AllParameterNamesInSet_Flag = $true
+                            $ParametersInSet = $ParameterSet.Parameters.Name + $ParameterSet.Parameters.Aliases
                             $AllParameters = $GetCommand.Parameters.Values.Name + $GetCommand.Parameters.Values.Aliases
                             foreach ($CommandElement in $CommandAst.CommandElements) {
                                 if ($CommandElement -is [System.Management.Automation.Language.CommandParameterAst]) {
                                     $ParameterName = ([System.Management.Automation.Language.CommandParameterAst]$CommandElement).ParameterName
-                                    if ($ParameterName -in $AllParameters -and $ParameterName -notin $Parameters) {
-                                        # Exclude ParameterNames that are not in AllParameters. They will be reported later.
-                                        $AllParameterNamesInASet_Flag = $false
+                                    if ($ParameterName -notin $ParametersInSet -and $ParameterName -in $AllParameters) {
+                                        # Skip ParameterNames that are not in AllParameters. They will be reported later.
+                                        $AllParameterNamesInSet_Flag = $false
                                         break
                                     }
                                 }
+                                if ($CommandElement -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                                ([System.Management.Automation.Language.VariableExpressionAst]$CommandElement).Splatted -eq $true) {
+                                    $ParameterNames = $global:AssignmentLeftAndRight.$("$" + ([System.Management.Automation.Language.VariableExpressionAst]$CommandElement).VariablePath).Expression.KeyValuePairs.Item1.Value
+                                    foreach ($ParameterName in $ParameterNames) {
+                                        if ($ParameterName -notin $ParametersInSet -and $ParameterName -in $AllParameters) {
+                                            # Skip ParameterNames that are not in AllParameters. They will be reported later.
+                                            $AllParameterNamesInSet_Flag = $false
+                                            break
+                                        }
+                                    }
+                                }
                             }
-                            if ($AllParameterNamesInASet_Flag) {
+                            if ($AllParameterNamesInSet_Flag) {
                                 break
                             }
                         }
-                        if ($AllParameterNamesInASet_Flag -eq $false) {
+
+                        if ($AllParameterNamesInSet_Flag -eq $false) {
                             # Not all parameters in a same ParameterSet.
                             $global:ParameterSet = $null
-                            $global:CommandParameterPair += @{
-                                CommandName = $CommandAst.Extent.Text
+                            $global:CommandName_Parameter_Expression_Pair += @{
+                                CommandName = $CommandText
                                 ParameterName = ""
                                 ExpressionToParameter = ""
                             }
                             return $true
                         }
                         else {
-                            # Create ParameterExpressionPair
+                            # Create Parameter_Expression_Pair
                             $global:ParameterSet = $ParameterSet
-                            $global:ParameterExpressionPair = @()
-                            for ($i = 1; $i -lt $CommandAst.CommandElements.Count;) {
+                            $Parameter_Expression_Pair = @()
+                            for ($i = 1; $i -lt $CommandAst.CommandElements.Count; $i++) {
                                 $CommandElement = $CommandAst.CommandElements[$i]
                                 $NextCommandElement = $CommandAst.CommandElements[$i + 1]
-                                # $PositionParameters = $global:ParameterSet.Parameters | where {$_.Position -ge 0}
-                                # $PositionParameters = $PositionParameters.Name + $PositionParameters.Aliases
-
                                 if ($CommandElement -is [System.Management.Automation.Language.CommandParameterAst]) {
                                     $CommandParameterElement = [System.Management.Automation.Language.CommandParameterAst]$CommandElement
                                     $ParameterName = $CommandParameterElement.ParameterName
-                                    $ParameterNameNotAlias = $GetCommand.Parameters.Values.Name | where {
-                                        $ParameterName -in $GetCommand.Parameters.$_.Name -or
-                                        $ParameterName -in $GetCommand.Parameters.$_.Aliases
-                                    }
+                                    $ParameterNameNotAlias = Get-ParameterNameNotAlias $GetCommand $ParameterName
                                     if ($ParameterNameNotAlias -eq $null) {
-                                        # ParameterName is not in AllParameters.
+                                        # Non-existant parameter name.
                                         # will report later.
-                                        $global:ParameterExpressionPair += @{
+                                        $Parameter_Expression_Pair += @{
                                             ParameterName = $ParameterName
                                             ExpressionToParameter = "<NonExistantParameterName>"
                                         }
-                                        if ($NextCommandElement -eq $null -or $NextCommandElement -is [System.Management.Automation.Language.CommandParameterAst]) {
+                                        if ($NextCommandElement -ne $null -and $NextCommandElement -isnot [System.Management.Automation.Language.CommandParameterAst]) {
                                             $i += 1
-                                        }
-                                        else {
-                                            $i += 2
                                         }
                                         continue
                                     }
                                     if ($GetCommand.Parameters.$ParameterNameNotAlias.SwitchParameter -eq $true) {
                                         # SwitchParameter
-                                        $global:ParameterExpressionPair += @{
+                                        $Parameter_Expression_Pair += @{
                                             ParameterName = $ParameterNameNotAlias
                                             ExpressionToParameter = "<SwitchParameter>"
                                         }
-                                        $i += 1
                                     }
                                     else {
                                         # not a SwitchParameter
@@ -181,19 +266,41 @@ function Measure-ParameterNameAndValue {
                                             # NonSwitchParameter + Parameter
                                             # Parameter must be assigned with a value.
                                             # will report later.
-                                            $global:ParameterExpressionPair += @{
+                                            $Parameter_Expression_Pair += @{
                                                 ParameterName = $ParameterNameNotAlias
                                                 ExpressionToParameter = "<NoValue>"
                                             }
-                                            $i += 1
                                         }
                                         else {
                                             # NonSwitchParameter + Expression
-                                            $global:ParameterExpressionPair += @{
+                                            $Parameter_Expression_Pair += @{
                                                 ParameterName = $ParameterNameNotAlias
                                                 ExpressionToParameter = $NextCommandElement
                                             }
-                                            $i += 2
+                                            $i += 1
+                                        }
+                                    }
+                                }
+                                elseif ($CommandElement -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                                ([System.Management.Automation.Language.VariableExpressionAst]$CommandElement).Splatted -eq $true) {
+                                    # @var
+                                    $KeyValuePairs = $global:AssignmentLeftAndRight.$("$" + ([System.Management.Automation.Language.VariableExpressionAst]$CommandElement).VariablePath).Expression.KeyValuePairs
+                                    $ParameterNames = $KeyValuePairs.Item1.Value
+                                    foreach ($ParameterName in $ParameterNames) {
+                                        $ParameterNameNotAlias = Get-ParameterNameNotAlias $GetCommand $ParameterName
+                                        if ($ParameterNameNotAlias -eq $null) {
+                                            # Non-existant parameter name.
+                                            # will report later.
+                                            $Parameter_Expression_Pair += @{
+                                                ParameterName = $ParameterName
+                                                ExpressionToParameter = "<NonExistantParameterName>"
+                                            }
+                                        }
+                                        else {
+                                            $Parameter_Expression_Pair += @{
+                                                ParameterName = $ParameterNameNotAlias
+                                                ExpressionToParameter = ($KeyValuePairs | where {$_.Item1.Value -eq $ParameterName}).Item2
+                                            }
                                         }
                                     }
                                 }
@@ -202,26 +309,25 @@ function Measure-ParameterNameAndValue {
                                     $CommandExpressionElement = [System.Management.Automation.Language.ExpressionAst]$CommandElement
                                     $PositionMaximum = ($global:ParameterSet.Parameters.Position | Measure-Object -Maximum).Maximum
                                     for ($Position = 0; $Position -le $PositionMaximum; $Position++) {
-                                        $ImplicitParameterName = @() + ($global:ParameterSet.Parameters | where {$_.Position -eq $Position}).Name
-                                        if ($ImplicitParameterName.Count -ne 0 -and $ImplicitParameterName -notin $global:ParameterExpressionPair.ParameterName) {
-                                            $global:ParameterExpressionPair += @{
-                                                ParameterName = $ImplicitParameterName[0]
+                                        $PositionParameterName = @() + ($global:ParameterSet.Parameters | where {$_.Position -eq $Position}).Name
+                                        if ($PositionParameterName -ne $null -and $PositionParameterName -notin $Parameter_Expression_Pair.ParameterName) {
+                                            $Parameter_Expression_Pair += @{
+                                                ParameterName = $PositionParameterName[0]
                                                 ExpressionToParameter = $CommandExpressionElement
                                             }
-                                            $i += 1
                                             break
                                         }
                                     }
                                     if ($Position -gt $PositionMaximum) {
                                         # This expression doesn't belong to any parameters.
-                                        $global:ParameterExpressionPair += @{
-                                            ParameterName = "<non-existant>"
+                                        $Parameter_Expression_Pair += @{
+                                            ParameterName = "<unknown>"
                                             ExpressionToParameter = $CommandExpressionElement
                                         }
-                                        $i += 1
                                     }
                                 }
                             }
+                            $global:Command_ParameterAndExpression_Pair.$CommandText += $Parameter_Expression_Pair
                         }
                     }
 
@@ -235,103 +341,61 @@ function Measure-ParameterNameAndValue {
                         $index = $CommandAst.CommandElements.Extent.Text.IndexOf($CommandElementAst.Extent.Text)
                         $NextCommandElement = $CommandAst.CommandElements[$index + 1]
                         $ParameterName = ([System.Management.Automation.Language.CommandParameterAst]$CommandElementAst).ParameterName
-                        $ParameterNameNotAlias = $GetCommand.Parameters.Values.Name | where {
-                            $ParameterName -in $GetCommand.Parameters.$_.Name -or
-                            $ParameterName -in $GetCommand.Parameters.$_.Aliases
-                        }
+                        $ParameterNameNotAlias = Get-ParameterNameNotAlias $GetCommand $ParameterName
                         if ($ParameterNameNotAlias -eq $null) {
-                            # ParameterName is not in AllParameters.
+                            # Non-existant parameter name.
                             if ($NextCommandElement -is [System.Management.Automation.Language.ExpressionAst]) {
                                 $global:SkipNextCommandElementAst = $true
+                                $global:Command_AppearedExpressions_Pair.$CommandText += $NextCommandElement.Extent.Text
                             }
-                            $global:CommandParameterPair += @{
+                            $global:CommandName_Parameter_Expression_Pair += @{
                                 CommandName = $CommandName
                                 ParameterName = $ParameterName
                                 ExpressionToParameter = ""
                             }
                             return $true
                         }
-                        else {
-                            # ParameterName is correct.
-                            if ($ParameterNameNotAlias -in $global:AppearedParameters) {
-                                # This parameter appeared more than once.
-                                $global:CommandParameterPair += @{
+
+                        # ParameterName is correct.
+                        if ($ParameterNameNotAlias -in $global:Command_AppearedParameters_Pair.$CommandText) {
+                            # This parameter appeared more than once.
+                            if ($NextCommandElement -is [System.Management.Automation.Language.ExpressionAst]) {
+                                $global:SkipNextCommandElementAst = $true
+                                $global:Command_AppearedExpressions_Pair.$CommandText += $NextCommandElement.Extent.Text
+                            }
+                            $global:CommandName_Parameter_Expression_Pair += @{
+                                CommandName = $CommandName
+                                ParameterName = $ParameterNameNotAlias
+                                ExpressionToParameter = "<duplicate>"
+                            }
+                            return $true
+                        }
+
+                        $global:Command_AppearedParameters_Pair.$CommandText += $ParameterNameNotAlias
+                        if ($GetCommand.Parameters.$ParameterNameNotAlias.SwitchParameter -eq $false) {
+                            # Parameter is not a SwitchParameter.
+                            if ($NextCommandElement -eq $null -or $NextCommandElement -is [System.Management.Automation.Language.CommandParameterAst]) {
+                                # Parameter is not assigned with a value.
+                                $global:CommandName_Parameter_Expression_Pair += @{
                                     CommandName = $CommandName
-                                    ParameterName = $ParameterNameNotAlias
-                                    ExpressionToParameter = "<2>"
+                                    ParameterName = $ParameterName
+                                    ExpressionToParameter = $null
                                 }
                                 return $true
                             }
                             else {
-                                $global:AppearedParameters += $ParameterNameNotAlias
-                            }
-
-                            if ($GetCommand.Parameters.$ParameterNameNotAlias.SwitchParameter -eq $false) {
-                                # Parameter is not a SwitchParameter.
-                                if ($NextCommandElement -eq $null -or $NextCommandElement -is [System.Management.Automation.Language.CommandParameterAst]) {
-                                    # Parameter is not assigned with a value.
-                                    $global:CommandParameterPair += @{
+                                # Parameter is assigned with a value.
+                                $global:SkipNextCommandElementAst = $true
+                                $global:Command_AppearedExpressions_Pair.$CommandText += $NextCommandElement.Extent.Text
+                                $Return = Measure-ParameterNameValuePair $GetCommand $ParameterName $NextCommandElement
+                                if ($Return -ne $null) {
+                                    # Mismatched_Parameter_Value_Type
+                                    $global:CommandName_Parameter_Expression_Pair += @{
                                         CommandName = $CommandName
-                                        ParameterName = $ParameterName
-                                        ExpressionToParameter = $null
+                                        ParameterName = "-$ParameterName"
+                                        ExpressionToParameter = $Return.ExpressionToParameter
                                     }
                                     return $true
-                                }
-                                else {
-                                    # Parameter is assigned with a value.
-                                    $global:SkipNextCommandElementAst = $true
-                                    $NextCommandElement_Copy = Get-ActualVariableValue $NextCommandElement
-
-                                    while ($NextCommandElement_Copy -is [System.Management.Automation.Language.VariableExpressionAst]) {
-                                        # get the actual value
-                                        $NextCommandElement_Copy = Get-ActualVariableValue $global:AssignmentLeftAndRight.($NextCommandElement_Copy.Extent.Text)
-                                        if ($NextCommandElement_Copy -eq $null) {
-                                            # Variable is not assigned with a value.
-                                            $global:CommandParameterPair += @{
-                                                CommandName = $CommandName
-                                                ParameterName = "-$ParameterName"
-                                                ExpressionToParameter = $NextCommandElement.Extent.Text + " is a null-valued parameter value."
-                                            }
-                                            return $true
-                                        }
-                                    }
-                                    if ($NextCommandElement_Copy -is [System.Management.Automation.Language.CommandAst]) {
-                                        # value is an command
-                                        $GetNextElementCommand = Get-Command $NextCommandElement_Copy.CommandElements[0].Extent.Text -ErrorAction SilentlyContinue
-                                        if ($GetNextElementCommand -eq $null) {
-                                            # CommandName is not valid.
-                                            # will be reported in next CommandAst
-                                            return $false
-                                        }
-                                        $ReturnType = $GetNextElementCommand.OutputType[0].Type
-                                        if ($ReturnType -eq $null)
-                                        {
-                                            $ReturnType = [Object]
-                                        }
-                                        $ExpectedType = $GetCommand.Parameters.$ParameterNameNotAlias.ParameterType
-                                        if ($ReturnType -ne $ExpectedType -and $ReturnType -isnot $ExpectedType -and
-                                        !$ReturnType.GetInterfaces().Contains($ExpectedType) -and !$ReturnType.GetInterfaces().Contains($ExpectedType.GetElementType())) {
-                                                $global:CommandParameterPair += @{
-                                                CommandName = $CommandName
-                                                ParameterName = "-$ParameterName"
-                                                ExpressionToParameter = $NextCommandElement.Extent.Text
-                                            }
-                                            return $true
-                                        }
-                                    }
-                                    else {
-                                        # value is a constant expression
-                                        $ExpectedType = $GetCommand.Parameters.$ParameterNameNotAlias.ParameterType
-                                        $ConvertedObject = $NextCommandElement_Copy.Extent.Text -as $ExpectedType
-                                        if ($NextCommandElement_Copy.StaticType -ne $ExpectedType -and $ConvertedObject -eq $null) {
-                                            $global:CommandParameterPair += @{
-                                                CommandName = $CommandName
-                                                ParameterName = "-$ParameterName"
-                                                ExpressionToParameter = $NextCommandElement.Extent.Text
-                                            }
-                                            return $true
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -339,75 +403,61 @@ function Measure-ParameterNameAndValue {
 
                     if ($CommandElementAst -is [System.Management.Automation.Language.ExpressionAst] -and
                     $CommandAst.CommandElements.Extent.Text.IndexOf($CommandElementAst.Extent.Text) -ne 0) {
-                        # This CommandElement is an expression with implicit parameter and is not the first CommandElement.
-                        # When there are same parameter values:
-                        $index = ($global:AppearedExpressions | where {$_.Extent.Text -eq $CommandElementAst.Extent.Text}).Count
-                        $PairWithThisExpression = $global:ParameterExpressionPair | where {$_.ExpressionToParameter.Extent.Text -eq $CommandElementAst.Extent.Text}
-                        if ((@() + $PairWithThisExpression).Count -eq 1) {
-                            # Convert to Array
-                            $ImplicitParameterName = $PairWithThisExpression.ParameterName
+                        $global:Command_AppearedExpressions_Pair.$CommandText += $CommandElementAst.Extent.Text
+                        if ($CommandElementAst -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                        ([System.Management.Automation.Language.VariableExpressionAst]$CommandElementAst).Splatted -eq $true) {
+                            # @var
+                            $KeyValuePairs = $global:AssignmentLeftAndRight.$("$" + ([System.Management.Automation.Language.VariableExpressionAst]$CommandElementAst).VariablePath)
+                            $ParameterNames = $KeyValuePairs.Item1.Value
+                            foreach ($ParameterName in $ParameterNames) {
+                                $ParameterNameNotAlias = Get-ParameterNameNotAlias $GetCommand $ParameterName
+                                $Expression = ($KeyValuePairs | where {$_.Item1.Value -eq $ParameterName}).Item2
+                                if ($ParameterNameNotAlias -eq $null) {
+                                    # Non-existant parameter name.
+                                    $global:CommandName_Parameter_Expression_Pair += @{
+                                        CommandName = $CommandName
+                                        ParameterName = ""
+                                        ExpressionToParameter = $CommandElementAst.Extent.Text
+                                    }
+                                    return $true
+                                }
+                                else {
+                                    $Return = Measure-ParameterNameValuePair $GetCommand $ParameterName $Expression
+                                    if ($Return -ne $null) {
+                                        # Mismatched_Parameter_Value_Type
+                                        $global:CommandName_Parameter_Expression_Pair += @{
+                                            CommandName = $CommandName
+                                            ParameterName = ""
+                                            ExpressionToParameter = $CommandElementAst.Extent.Text
+                                        }
+                                        return $true
+                                    }
+                                }
+                            }
                         }
                         else {
-                            $ImplicitParameterName = $PairWithThisExpression[$index].ParameterName
-                        }
-                        $global:AppearedExpressions += $CommandElementAst
-
-                        if ($ImplicitParameterName -eq "<non-existant>") {
-                            $global:CommandParameterPair += @{
-                                CommandName = $CommandName
-                                ParameterName = $ImplicitParameterName
-                                ExpressionToParameter = $CommandElementAst.Extent.Text
-                            }
-                            return $true
-                        }
-
-                        $CommandElementAst_Copy = Get-ActualVariableValue $CommandElementAst
-                        while ($CommandElementAst_Copy -is [System.Management.Automation.Language.VariableExpressionAst]) {
-                            # get the actual value
-                            $CommandElementAst_Copy = Get-ActualVariableValue $global:AssignmentLeftAndRight.($CommandElementAst_Copy.Extent.Text)
-                            if ($CommandElementAst_Copy -eq $null) {
-                                # Variable is not assigned with a value.
-                                $global:CommandParameterPair += @{
+                            # This CommandElement is an expression assigned to a position parameter.
+                            # When there are duplicate parameter values:
+                            $index = ($global:Command_AppearedExpressions_Pair.$CommandText | where {$_ -eq $CommandElementAst.Extent.Text}).Count - 1
+                            $PairsWithThisExpression = @() + ($global:Command_ParameterAndExpression_Pair.$CommandText | where {$_.ExpressionToParameter.Extent.Text -eq $CommandElementAst.Extent.Text})
+                            $PositionParameterName = $PairsWithThisExpression[$index].ParameterName
+                            if ($PositionParameterName -eq "<unknown>") {
+                                # Unbinded_Expression
+                                $global:CommandName_Parameter_Expression_Pair += @{
                                     CommandName = $CommandName
-                                    ParameterName = "[-$ImplicitParameterName]"
-                                    ExpressionToParameter = $CommandElementAst.Extent.Text + " is a null-valued parameter value."
-                                }
-                                return $true
-                            }
-                        }
-                        if ($CommandElementAst_Copy -is [System.Management.Automation.Language.CommandAst]) {
-                            # value is an command
-                            $GetElementCommand = Get-Command $CommandElementAst_Copy.CommandElements[0].Extent.Text -ErrorAction SilentlyContinue
-                            if ($GetElementCommand -eq $null) {
-                                # CommandName is not valid.
-                                # will be reported in next CommandAst
-                                return $false
-                            }
-                            $ReturnType = $GetElementCommand.OutputType[0].Type
-                            if ($ReturnType -eq $null)
-                            {
-                                $ReturnType = [Object]
-                            }
-                            $ExpectedType = $GetCommand.Parameters.$ImplicitParameterName.ParameterType
-                            if ($ReturnType -ne $ExpectedType -and $ReturnType -isnot $ExpectedType -and
-                            !$ReturnType.GetInterfaces().Contains($ExpectedType) -and !$ReturnType.GetInterfaces().Contains($ExpectedType.GetElementType())) {
-                                    $global:CommandParameterPair += @{
-                                    CommandName = $CommandName
-                                    ParameterName = "[-$ImplicitParameterName]"
+                                    ParameterName = $PositionParameterName
                                     ExpressionToParameter = $CommandElementAst.Extent.Text
                                 }
                                 return $true
                             }
-                        }
-                        else {
-                            # value is a constant expression
-                            $ExpectedType = $GetCommand.Parameters.$ImplicitParameterName.ParameterType
-                            $ConvertedObject = $CommandElementAst_Copy.Extent.Text -as $ExpectedType
-                            if ($CommandElementAst_Copy.StaticType -ne $ExpectedType -and $ConvertedObject -eq $null) {
-                                $global:CommandParameterPair += @{
+
+                            $Return = Measure-ParameterNameValuePair $GetCommand $PositionParameterName $CommandElementAst
+                            if ($Return -ne $null) {
+                                # Mismatched_Parameter_Value_Type
+                                $global:CommandName_Parameter_Expression_Pair += @{
                                     CommandName = $CommandName
-                                    ParameterName = "[-$ImplicitParameterName]"
-                                    ExpressionToParameter = $CommandElementAst.Extent.Text
+                                    ParameterName = "[-$PositionParameterName]"
+                                    ExpressionToParameter = $Return.ExpressionToParameter
                                 }
                                 return $true
                             }
@@ -420,38 +470,39 @@ function Measure-ParameterNameAndValue {
 
             [System.Management.Automation.Language.Ast[]]$Asts = $ScriptBlockAst.FindAll($Predicate, $false)
             for ($i = 0; $i -lt $Asts.Count; $i++) {
-                if ($global:CommandParameterPair[$i].ParameterName -eq "" -and $global:CommandParameterPair[$i].ExpressionToParameter -eq "") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName)`" has a parameter not in the same ParameterSet as others."
+                if ($global:CommandName_Parameter_Expression_Pair[$i].ParameterName -eq "" -and $global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter -eq "") {
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName)`" has a parameter not in the same ParameterSet as others."
                     $RuleName = [RuleNames]::Unknown_Parameter_Set
                     $Severity = "Error"
                 }
-                elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" is not a valid parameter name."
+                elseif ($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter -eq "") {
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) -$($global:CommandName_Parameter_Expression_Pair[$i].ParameterName)`" is not a valid parameter name."
                     $RuleName = [RuleNames]::Invalid_Parameter_Name
                     $Severity = "Error"
                 }
-                elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq "<2>") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" appeared more than once."
+                elseif ($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter -eq "<duplicate>") {
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) -$($global:CommandName_Parameter_Expression_Pair[$i].ParameterName)`" appeared more than once."
                     $RuleName = [RuleNames]::Duplicate_Parameter_Name
                     $Severity = "Error"
                 }
-                elseif ($global:CommandParameterPair[$i].ExpressionToParameter -eq $null) {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) -$($CommandParameterPair[$i].ParameterName)`" must be assigned with a value."
+                elseif ($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter -eq $null) {
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) -$($global:CommandName_Parameter_Expression_Pair[$i].ParameterName)`" must be assigned with a value."
                     $RuleName = [RuleNames]::Unassigned_Parameter
                     $Severity = "Error"
                 }
-                elseif ($global:CommandParameterPair[$i].ExpressionToParameter.EndsWith(" is a null-valued parameter value.")) {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ParameterName) $($CommandParameterPair[$i].ExpressionToParameter)`""
+                elseif ($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter.EndsWith(" is a null-valued parameter value.")) {
+                    $ExpressionToParameterLength = $global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter.Length - " is a null-valued parameter value.".Length
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) $($global:CommandName_Parameter_Expression_Pair[$i].ParameterName) $($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter.Substring(0, $ExpressionToParameterLength))`" is a null-valued parameter value."
                     $RuleName = [RuleNames]::Unassigned_Variable
                     $Severity = "Warning"
                 }
-                elseif ($global:CommandParameterPair[$i].ParameterName -eq "<non-existant>") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ExpressionToParameter)`" is not explicitly assigned to a parameter."
-                    $RuleName = [RuleNames]::Unbinded_Parameter_Name
+                elseif ($global:CommandName_Parameter_Expression_Pair[$i].ParameterName -eq "<unknown>") {
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) $($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter)`" is not explicitly assigned to a parameter."
+                    $RuleName = [RuleNames]::Unbinded_Expression
                     $Severity = "Warning"
                 }
                 else {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName) $($CommandParameterPair[$i].ParameterName) $($CommandParameterPair[$i].ExpressionToParameter)`" is not an expected parameter value type."
+                    $Message = "`"$($global:CommandName_Parameter_Expression_Pair[$i].CommandName) $($global:CommandName_Parameter_Expression_Pair[$i].ParameterName) $($global:CommandName_Parameter_Expression_Pair[$i].ExpressionToParameter)`" is not an expected parameter value type."
                     $RuleName = [RuleNames]::Mismatched_Parameter_Value_Type
                     $Severity = "Warning"
                 }

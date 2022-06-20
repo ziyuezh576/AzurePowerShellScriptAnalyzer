@@ -5,7 +5,7 @@ $EXAMPLES_HEADING = "## EXAMPLES"
 $PARAMETERS_HEADING = "## PARAMETERS"
 $SINGLE_EXAMPLE_HEADING_REGEX = "\n###\s*"
 $SINGLE_EXAMPLE_TITLE_HEADING_REGEX = "$SINGLE_EXAMPLE_HEADING_REGEX.+"
-$CODE_BLOCK_REGEX = "``````(powershell)?\s*\n(.*\n)+?\s*``````"
+$CODE_BLOCK_REGEX = "``````powershell\s*\n(.*\n)+?\s*``````"
 $OUTPUT_BLOCK_REGEX = "``````output\s*\n(.*\n)+?\s*``````"
 
 class Scale {
@@ -141,7 +141,7 @@ function Get-ExamplesDetailsFromMd {
                 }
             }
 
-            # From the end of the last codeblock to the end is example description.
+            # From the end of the last codeblock to the end is also example description.
             $description = $exampleContent.SubString($exampleCodeBlocks[-1].Index + $exampleCodeBlocks[-1].Length).Trim()
             if ($description -ne "") {
                 $exampleDescriptions += $description
@@ -230,7 +230,7 @@ function Get-ScriptAnalyzerResult {
         [string]$Module,
         [string]$ScriptPath,
         [Parameter(Mandatory, HelpMessage = "PSScriptAnalyzer custom rules path. Supports wildcard.")]
-        [string[]]$RulePath,
+        [string[]]$RulePaths,
         [switch]$IncludeDefaultRules
 )
 
@@ -263,18 +263,25 @@ function Get-ScriptAnalyzerResult {
             Extent = ". $path"
         }
     }
-    $importResults.SucceededResults | foreach {
-        $importContent += ". $_`n"
+    foreach ($path in $importResults.SucceededResults) {
+        $importContent += ". $path`n"
     }
-    $tempFolderPath = "TempPSSARules"
-    Add-ContentToHeadOfRule $RulePaths $tempFolderPath $importContent
-    if ($RulePath -eq $null) {
+
+    if ($importResults.SucceededResults.Count -ne 0) {
+        $tempFolderPath = "TempPSSARules"
+        Add-ContentToHeadOfRule $RulePaths $tempFolderPath $importContent
+        $RulePaths = "$tempFolderPath\*.psm1"
+    }
+
+    if ($RulePaths -eq $null) {
         $results = Invoke-ScriptAnalyzer -Path $ScriptPath -IncludeDefaultRules:$IncludeDefaultRules.IsPresent
     }
     else {
-        $results = Invoke-ScriptAnalyzer -Path $ScriptPath -CustomRulePath $RulePath -IncludeDefaultRules:$IncludeDefaultRules.IsPresent
+        $results = Invoke-ScriptAnalyzer -Path $ScriptPath -CustomRulePath $RulePaths -IncludeDefaultRules:$IncludeDefaultRules.IsPresent
     }
-    Remove-Item $tempFolderPath -Recurse
+    if ($importResults.SucceededResults.Count -ne 0) {
+        Remove-Item $tempFolderPath -Recurse
+    }
 
     return $importFailedResults + $results | Select-Object -Property @{Name = "Module"; Expression = {$Module}},
         @{Name = "Cmdlet";Expression={$Cmdlet}},

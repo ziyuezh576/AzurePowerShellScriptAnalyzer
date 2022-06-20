@@ -7,3 +7,5 @@
     - ".\Scale.csv"
     - ".\Missing.csv"
     - ".\DeletingSeparating.csv"
+
+3. Run: Measure-MarkdownOrScript.ps1 -ScriptPaths "$env:USERPROFILE\output\ScriptsByExample\Az.Network\Get-AzVirtualNetworkSubnetConfig-1.ps1" -RulePaths "$env:USERPROFILE\source\repos\AzurePowerShellScriptAnalyzer\AnalyzeRules\*.psm1" -Recurse -OutputResultsByModule

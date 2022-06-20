@@ -23,7 +23,7 @@ function Measure-CommandName {
 
     process {
         $Results = @()
-        $global:CommandParameterPair = @()
+        $global:Command_Parameter_Expression_Pair = @()
         $global:Ast = $null
 
         try {
@@ -36,10 +36,10 @@ function Measure-CommandName {
                     if ($CommandAst.InvocationOperator -eq "Unknown") {
                         # $CommandName = $CommandAst.GetCommandName()
                         $CommandName = $CommandAst.CommandElements[0].Extent.Text
-                        $GetCommand = Get-Command $CommandName -ErrorAction SilentlyContinue
+                        $GetCommand = Get-Command $CommandName -ErrorAction Ignore
                         if ($GetCommand -eq $null) {
                             # CommandName is not valid.
-                            $global:CommandParameterPair += @{
+                            $global:Command_Parameter_Expression_Pair += @{
                                 CommandName = $CommandName
                                 ParameterName = "<is not valid>"
                             }
@@ -48,7 +48,7 @@ function Measure-CommandName {
                         else {
                             if ($GetCommand.CommandType -eq "Alias") {
                                 # CommandName is an alias.
-                                $global:CommandParameterPair += @{
+                                $global:Command_Parameter_Expression_Pair += @{
                                     CommandName = $CommandName
                                     ParameterName = "<is an alias>"
                                 }
@@ -56,7 +56,7 @@ function Measure-CommandName {
                             }
                             if ($CommandName -cnotmatch "^([A-Z][a-z]+)+-([A-Z][a-z0-9]*)+$") {
                                 # CommandName doesn't follow the Capitalization Conventions.
-                                $global:CommandParameterPair += @{
+                                $global:Command_Parameter_Expression_Pair += @{
                                     CommandName = $CommandName
                                     ParameterName = "<doesn't follow the Capitalization Conventions>"
                                 }
@@ -71,16 +71,16 @@ function Measure-CommandName {
 
             [System.Management.Automation.Language.Ast[]]$Asts = $ScriptBlockAst.FindAll($Predicate, $false)
             for ($i = 0; $i -lt $Asts.Count; $i++) {
-                if ($global:CommandParameterPair[$i].ParameterName -eq "<is not valid>") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName)`" is not a valid command name."
+                if ($global:Command_Parameter_Expression_Pair[$i].ParameterName -eq "<is not valid>") {
+                    $Message = "`"$($global:Command_Parameter_Expression_Pair[$i].CommandName)`" is not a valid command name."
                     $RuleName = [RuleNames]::Invalid_Cmdlet
                 }
-                if ($global:CommandParameterPair[$i].ParameterName -eq "<is an alias>") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName)`" is an alias of `"$((Get-Alias $CommandParameterPair[$i].CommandName)[0].ResolvedCommandName)`"."
+                if ($global:Command_Parameter_Expression_Pair[$i].ParameterName -eq "<is an alias>") {
+                    $Message = "`"$($global:Command_Parameter_Expression_Pair[$i].CommandName)`" is an alias of `"$((Get-Alias $global:Command_Parameter_Expression_Pair[$i].CommandName)[0].ResolvedCommandName)`"."
                     $RuleName = [RuleNames]::Is_Alias
                 }
-                if ($global:CommandParameterPair[$i].ParameterName -eq "<doesn't follow the Capitalization Conventions>") {
-                    $Message = "`"$($CommandParameterPair[$i].CommandName)`" doesn't follow the Capitalization Conventions."
+                if ($global:Command_Parameter_Expression_Pair[$i].ParameterName -eq "<doesn't follow the Capitalization Conventions>") {
+                    $Message = "`"$($global:Command_Parameter_Expression_Pair[$i].CommandName)`" doesn't follow the Capitalization Conventions."
                     $RuleName = [RuleNames]::Capitalization_Conventions_Violated
                 }
                 $Result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
