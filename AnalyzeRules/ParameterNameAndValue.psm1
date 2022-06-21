@@ -184,9 +184,9 @@ function Measure-ParameterNameAndValue {
                     $CommandAst.CommandElements.Extent.Text.IndexOf($CommandElementAst.Extent.Text) -eq 0) {
                         # This CommandElement is cmdlet.
                         # reset or add
-                        $global:Command_AppearedParameters_Pair.$CommandText = @() 
-                        $global:Command_AppearedExpressions_Pair.$CommandText = @() 
-                        $global:Command_ParameterAndExpression_Pair.$CommandText = @() 
+                        $global:Command_AppearedParameters_Pair.$CommandText = @()
+                        $global:Command_AppearedExpressions_Pair.$CommandText = @()
+                        $global:Command_ParameterAndExpression_Pair.$CommandText = @()
 
                         # Move ParameterSets that have more position parameters to the front.
                         $ParameterSets = @() + ($GetCommand.ParameterSets | Sort-Object {($_.Parameters.Position | where {$_ -ge 0}).Count} -Descending)
