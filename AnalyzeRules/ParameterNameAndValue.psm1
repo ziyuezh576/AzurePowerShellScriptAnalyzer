@@ -112,7 +112,7 @@ function Measure-ParameterNameValuePair {
     else {
         # value is a constant expression
         $ExpectedType = $GetCommand.Parameters.$ParameterNameNotAlias.ParameterType
-        $ConvertedObject = $CommandElementAst_Copy.Extent.Text -as $ExpectedType
+        $ConvertedObject = $CommandElementAst_Copy.Value -as $ExpectedType
         if ($CommandElementAst_Copy.StaticType -ne $ExpectedType -and $ConvertedObject -eq $null) {
             return @{
                 CommandName = $CommandName
